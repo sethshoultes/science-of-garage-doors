@@ -30,8 +30,8 @@ export const descriptor = {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
-    camera.position.set(5, 3.5, 9);
-    camera.lookAt(0, 3, 0);
+    camera.position.set(7, 2.5, 13);
+    camera.lookAt(0, 2, -1);
     addLights(scene);
     makeOrbitLike(camera, canvas);
 
@@ -177,22 +177,23 @@ export const descriptor = {
     let doorProgress = 0, doorTarget = 0;
 
     function updateDoor(t) {
-      for (let i = 0; i < panelCount; i++) {
-        const panel = panels[i];
-        const panelT = Math.max(0, Math.min(1, (t * panelCount - (panelCount - 1 - i)) * 1.0));
-        if (panelT <= 0) {
-          panel.position.set(0, panelH / 2 + i * panelH, 0);
-          panel.rotation.x = 0;
-        } else if (panelT < 0.5) {
-          const a = panelT * 2;
-          const angle = a * Math.PI / 2;
-          const rad = 1.0;
-          panel.position.set(0, 5 - panelH / 2 + rad * Math.cos(angle) - rad, -rad * Math.sin(angle));
-          panel.rotation.x = -angle;
-        } else {
-          const slide = (panelT - 0.5) * 2;
-          panel.position.set(0, 5 - panelH / 2, -1.0 - slide * 2.5);
-          panel.rotation.x = -Math.PI / 2;
+      const pivotY = 5.0; // top of door frame
+
+      if (t < 0.5) {
+        // Phase 1: entire door rotates from vertical to horizontal around top pivot
+        const angle = t * 2 * Math.PI / 2;
+        for (let i = 0; i < panelCount; i++) {
+          const dy = (panelH / 2 + i * panelH) - pivotY;
+          panels[i].position.set(0, pivotY + dy * Math.cos(angle), dy * Math.sin(angle));
+          panels[i].rotation.x = -angle;
+        }
+      } else {
+        // Phase 2: door slides backward along ceiling tracks
+        const slide = (t - 0.5) * 2;
+        for (let i = 0; i < panelCount; i++) {
+          const dy = (panelH / 2 + i * panelH) - pivotY;
+          panels[i].position.set(0, pivotY, dy - slide * 3);
+          panels[i].rotation.x = -Math.PI / 2;
         }
       }
       buildExtSprings(t);
