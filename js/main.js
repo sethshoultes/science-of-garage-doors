@@ -20,18 +20,14 @@ import { initPrint } from './ui/print.js';
 
 // ─── Scene descriptors ───
 import { descriptor as heroScene } from './scenes/hero.js';
-import { descriptor as doorScene } from './scenes/door.js';
-import { descriptor as springScene } from './scenes/spring.js';
-import { descriptor as motorScene } from './scenes/motor.js';
-import { descriptor as smartScene } from './scenes/smart.js';
-import { descriptor as chainDriveScene } from './scenes/chain-drive.js';
-import { descriptor as beltDriveScene } from './scenes/belt-drive.js';
-import { descriptor as screwDriveScene } from './scenes/screw-drive.js';
-import { descriptor as directDriveScene } from './scenes/direct-drive.js';
-
-// ─── Tool descriptors ───
-import { descriptor as ledInterferenceTool } from './tools/led-interference.js';
-import { descriptor as springCalculatorTool } from './tools/spring-calculator.js';
+import { descriptor as doorScene } from './scenes/door-system.js';
+import { descriptor as springScene } from './scenes/torsion-spring.js';
+import { descriptor as motorScene } from './scenes/motor-internals.js';
+import { descriptor as smartScene } from './scenes/smart-home.js';
+import { descriptor as chainDriveScene } from './scenes/drive-chain.js';
+import { descriptor as beltDriveScene } from './scenes/drive-belt.js';
+import { descriptor as screwDriveScene } from './scenes/drive-screw.js';
+import { descriptor as directDriveScene } from './scenes/drive-direct.js';
 
 /**
  * All scene descriptors to register with SceneManager.
@@ -49,22 +45,14 @@ const SCENES = [
 ];
 
 /**
- * All tool descriptors to register with SceneManager.
- */
-const TOOLS = [
-  ledInterferenceTool,
-  springCalculatorTool,
-];
-
-/**
  * Drive type scenes that are lazy-loaded on tab activation.
- * Maps tab name to scene descriptor id.
+ * Maps tab name to scene descriptor id (matches id in scene files).
  */
 const DRIVE_TAB_MAP = {
-  chain: 'chain-drive',
-  belt: 'belt-drive',
-  screw: 'screw-drive',
-  direct: 'direct-drive',
+  chain: 'tab-chain',
+  belt: 'tab-belt',
+  screw: 'tab-screw',
+  direct: 'tab-direct',
 };
 
 /**
@@ -78,11 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (descriptor) SceneManager.register(descriptor);
   });
 
-  // Register tool descriptors (same lifecycle as scenes)
-  TOOLS.forEach(descriptor => {
-    if (descriptor) SceneManager.register(descriptor);
-  });
-
   // Initialize UI modules
   initNav();
   initTabs();
@@ -90,10 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initPrint();
 
   // ─── Register action handlers ───
-  // The ActionRegistry's delegated click handler is installed automatically
-  // on first register() call. Scene-specific actions will be registered
-  // by each scene's init() function. Here we register global actions.
-
   ActionRegistry.register('toggleMute', () => {
     audioEngine.toggleMute();
   });
@@ -102,8 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('tab:activated', (e) => {
     const { group, tab } = e.detail;
 
-    // Only handle the motor-types tab group
-    if (group !== 'motor-types') return;
+    // Only handle the drive-types tab group
+    if (group !== 'drive-types') return;
 
     const sceneId = DRIVE_TAB_MAP[tab];
     if (!sceneId) return;
