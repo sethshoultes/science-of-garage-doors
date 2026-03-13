@@ -1,0 +1,28 @@
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .hero canvas,
+  .canvas-wrap canvas,
+  .controls-bar,
+  .nav,
+  .hero .scroll-hint {
+    display: none !important;
+  }
+
+  .print-diagram {
+    display: block !important;
+  }
+
+  .section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .divider {
+    page-break-after: always;
+    break-after: always;
+  }
+}
