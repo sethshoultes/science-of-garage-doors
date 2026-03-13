@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Science of Garage Doors — Interactive 3D Explorer v2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600;700&family=Source+Sans+Pro:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0c0c0e;--surface:#161619;--surface2:#1e1e22;--border:#2a2a30;
+--accent:#ff6b2b;--accent2:#ffa733;--accent3:#22d3ee;--accent4:#a855f7;
+--text:#e8e6e3;--text2:#9a9894;--text3:#6a6862;
+--danger:#ef4444;--success:#22c55e;--warn:#eab308;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans Pro',sans-serif;line-height:1.6;overflow-x:hidden}
+
+/* ─── HERO ─── */
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+.hero canvas{position:absolute;inset:0;z-index:0}
+.hero-content{position:relative;z-index:2;padding:2rem}
+.hero h1{font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(2.4rem,6vw,5rem);text-transform:uppercase;letter-spacing:.08em;line-height:1.1;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}
+.hero .subtitle{font-family:'JetBrains Mono',monospace;font-size:clamp(.7rem,1.4vw,.95rem);color:var(--text2);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.5rem}
+.hero .version-badge{display:inline-block;padding:.25rem .75rem;border:1px solid var(--accent);border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2rem}
+.hero .scroll-hint{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);z-index:2;animation:bob 2s ease-in-out infinite;color:var(--text2);font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+
+/* ─── NAV ─── */
+.nav{position:sticky;top:0;z-index:100;background:rgba(12,12,14,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 1rem;overflow-x:auto;white-space:nowrap}
+.nav-inner{display:flex;gap:0;max-width:1400px;margin:0 auto}
+.nav a{display:inline-block;padding:.85rem 1.1rem;color:var(--text2);text-decoration:none;font-family:'Oswald',sans-serif;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .3s}
+.nav a:hover,.nav a.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ─── SECTIONS ─── */
+.section{max-width:1400px;margin:0 auto;padding:4rem 2rem;opacity:0;transform:translateY(30px);transition:opacity .8s,transform .8s}
+.section.visible{opacity:1;transform:translateY(0)}
+.section-header{margin-bottom:2.5rem}
+.section-tag{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.4rem}
+.section-title{font-family:'Oswald',sans-serif;font-size:clamp(1.6rem,3.5vw,2.8rem);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+/* ─── CANVAS ─── */
+.canvas-wrap{position:relative;width:100%;height:500px;background:#141418;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1.5rem}
+.canvas-wrap canvas{width:100%!important;height:100%!important;display:block}
+.canvas-label{position:absolute;bottom:.8rem;left:.8rem;background:rgba(12,12,14,.88);padding:.35rem .7rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
+.controls-bar{position:absolute;top:.8rem;right:.8rem;display:flex;gap:.4rem;z-index:5;flex-wrap:wrap;justify-content:flex-end}
+.ctrl-btn{background:rgba(12,12,14,.88);border:1px solid var(--border);color:var(--text);padding:.45rem .85rem;border-radius:4px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.05em;transition:all .2s;white-space:nowrap}
+.ctrl-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ctrl-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ─── 3D LABELS ─── */
+.label-3d{position:absolute;pointer-events:none;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;background:rgba(12,12,14,.85);padding:.2rem .5rem;border-radius:3px;border:1px solid rgba(255,107,43,.3);white-space:nowrap;transition:opacity .3s;z-index:4}
+.label-3d::before{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:6px;height:6px;background:var(--accent);border-radius:50%}
+
+/* ─── INFO GRID ─── */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-top:1.5rem}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.3rem;transition:border-color .3s,transform .3s}
+.info-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.info-card h3{font-family:'Oswald',sans-serif;font-size:1rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:.6rem}
+.info-card p{color:var(--text2);font-size:.9rem;line-height:1.55}
+.info-card p strong{color:var(--text)}
+
+/* ─── SPECS TABLE ─── */
+.specs-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.85rem}
+.specs-table th,.specs-table td{padding:.65rem .85rem;border:1px solid var(--border);text-align:left}
+.specs-table th{background:var(--surface2);font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;font-weight:600;color:var(--accent);font-size:.75rem}
+.specs-table td{color:var(--text2)}
+.specs-table tr:hover td{background:rgba(255,107,43,.04)}
+
+/* ─── TABS ─── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto}
+.tab-btn{padding:.7rem 1.3rem;background:none;border:none;color:var(--text2);font-family:'Oswald',sans-serif;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;border-bottom:2px solid transparent;transition:all .3s;white-space:nowrap}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ─── BOXES ─── */
+.warning-box{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-left:4px solid var(--danger);border-radius:0 8px 8px 0;padding:1.3rem;margin:1.5rem 0}
+.warning-box h4{font-family:'Oswald',sans-serif;color:var(--danger);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;font-size:.95rem}
+.warning-box p{color:var(--text2);font-size:.88rem}
+.tip-box{background:rgba(34,211,238,.05);border:1px solid rgba(34,211,238,.15);border-left:4px solid var(--accent3);border-radius:0 8px 8px 0;padding:1.3rem;margin:1.5rem 0}
+.tip-box h4{font-family:'Oswald',sans-serif;color:var(--accent3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;font-size:.95rem}
+.tip-box p{color:var(--text2);font-size:.88rem}
+
+/* ─── READOUT ─── */
+.readout{display:flex;gap:1rem;flex-wrap:wrap;margin:1.2rem 0}
+.readout-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.8rem 1rem;min-width:120px;flex:1}
+.readout-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--text2);text-transform:uppercase;letter-spacing:.12em}
+.readout-value{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:600;color:var(--accent);margin-top:.2rem}
+.readout-unit{font-size:.7rem;color:var(--text2);font-weight:400}
+
+/* ─── SLIDER ─── */
+.slider-group{margin:.8rem 0}
+.slider-group label{display:block;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
+input[type="range"]{-webkit-appearance:none;width:100%;height:4px;background:var(--border);border-radius:2px;outline:none}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--accent);border-radius:50%;cursor:pointer}
+
+/* ─── OSCILLOSCOPE ─── */
+.scope-container{position:relative;background:#0a0a0c;border:2px solid #333;border-radius:8px;padding:1rem;margin:1.5rem 0}
+.scope-canvas{width:100%;height:200px;display:block;border-radius:4px}
+.scope-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.scope-title{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent3);text-transform:uppercase;letter-spacing:.1em}
+.scope-readout{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--success)}
+
+/* ─── FORCE BALANCE CHART ─── */
+.chart-container{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin:1.5rem 0}
+.chart-canvas{width:100%;height:300px;display:block}
+.chart-legend{display:flex;gap:1.5rem;margin-top:1rem;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:.5rem;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+
+/* ─── FLOWCHART ─── */
+.flowchart{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2rem;margin:1.5rem 0;overflow-x:auto}
+.flow-node{display:inline-block;padding:.6rem 1rem;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.75rem;cursor:pointer;transition:all .3s;margin:.3rem;text-align:center}
+.flow-start{background:var(--accent);color:#fff;border-radius:20px}
+.flow-decision{background:var(--surface2);border:2px solid var(--accent2);color:var(--text);transform:rotate(0deg)}
+.flow-action{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.flow-solution{background:rgba(34,197,94,.1);border:1px solid var(--success);color:var(--success)}
+.flow-node:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(255,107,43,.15)}
+.flow-tree{display:flex;flex-direction:column;gap:.5rem}
+.flow-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.flow-arrow{color:var(--text3);font-size:.8rem;padding:0 .3rem}
+.flow-indent{padding-left:2rem}
+.flow-hidden{display:none}
+.flow-expanded{display:block}
+
+/* ─── ROLLING CODE ANIM ─── */
+.code-anim{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin:1.5rem 0}
+.code-display{display:flex;gap:.3rem;justify-content:center;margin:1rem 0;flex-wrap:wrap}
+.code-digit{width:32px;height:40px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.9rem;color:var(--accent);transition:all .3s}
+.code-digit.changing{background:var(--accent);color:#fff;transform:scale(1.1)}
+.code-status{text-align:center;font-family:'JetBrains Mono',monospace;font-size:.75rem;padding:.5rem 1rem;border-radius:4px;margin-top:1rem}
+.code-status.valid{background:rgba(34,197,94,.1);color:var(--success);border:1px solid rgba(34,197,94,.3)}
+.code-status.invalid{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+
+/* ─── INTERFERENCE DEMO ─── */
+.interference-demo{display:flex;gap:1.5rem;align-items:center;justify-content:center;flex-wrap:wrap;margin:1.5rem 0}
+.bulb-demo{text-align:center;padding:1.2rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:140px;cursor:pointer;transition:all .3s}
+.bulb-demo:hover{border-color:var(--accent)}
+.bulb-demo.active{border-color:var(--accent);box-shadow:0 0 20px rgba(255,107,43,.12)}
+.bulb-icon{font-size:2.2rem;margin-bottom:.4rem;transition:all .3s}
+.bulb-demo.active .bulb-icon{filter:drop-shadow(0 0 12px rgba(255,200,50,.6))}
+.signal-strength{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1rem;border:3px solid;transition:all .5s}
+
+/* ─── SPRING CALCULATOR ─── */
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:1.5rem 0}
+.calc-inputs{display:flex;flex-direction:column;gap:.8rem}
+.calc-result{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.3rem}
+.calc-result h4{font-family:'Oswald',sans-serif;color:var(--accent);text-transform:uppercase;font-size:.9rem;margin-bottom:.8rem}
+.calc-row{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.calc-row:last-child{border-bottom:none}
+.calc-key{color:var(--text2)}
+.calc-val{color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:600}
+
+/* ─── SIGNAL DIAGRAM ─── */
+.signal-diagram{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin:1.5rem 0}
+.freq-bar{display:flex;align-items:center;gap:1rem;margin:.6rem 0}
+.freq-label{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text2);min-width:110px}
+.freq-track{flex:1;height:20px;background:var(--surface2);border-radius:4px;position:relative;overflow:hidden}
+.freq-fill{height:100%;border-radius:4px;position:absolute}
+
+/* ─── DIVIDER / FOOTER ─── */
+.divider{height:1px;background:var(--border);margin:0}
+.footer{text-align:center;padding:3rem 2rem;color:var(--text2);font-size:.8rem;border-top:1px solid var(--border)}
+
+/* ─── SOUND TOGGLE ─── */
+.sound-toggle{position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;background:rgba(12,12,14,.9);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;font-size:1.1rem}
+.sound-toggle:hover{border-color:var(--accent)}
+
+@media(max-width:768px){
+.section{padding:2.5rem 1rem}
+.canvas-wrap{height:320px}
+.info-grid{grid-template-columns:1fr}
+.calc-grid{grid-template-columns:1fr}
+.readout{gap:.6rem}
+.readout-item{min-width:100px;padding:.6rem .8rem}
+}
+@media print{
+.canvas-wrap,.hero,.nav,.sound-toggle,.controls-bar{display:none!important}
+.section{opacity:1!important;transform:none!important;page-break-inside:avoid}
+body{background:#fff;color:#000}
+.info-card{border-color:#ccc}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════ SOUND TOGGLE ═══════ -->
+<div class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle Sound">🔇</div>
+
+<!-- ═══════ HERO ═══════ -->
+<div class="hero" id="hero">
+<canvas id="heroCanvas"></canvas>
+<div class="hero-content">
+<h1>The Science of<br>Garage Doors</h1>
+<div class="subtitle">Physics · Engineering · Electronics</div>
+<div class="version-badge">v2.0 — Complete Interactive Explorer</div>
+</div>
+<div class="scroll-hint">↓ Scroll to explore ↓</div>
+</div>
+
+<!-- ═══════ NAV ═══════ -->
+<div class="nav">
+<div class="nav-inner">
+<a href="#door-system">Door System</a>
+<a href="#torsion-springs">Torsion Springs</a>
+<a href="#extension-springs">Extension Springs</a>
+<a href="#motor-types">Motor Types</a>
+<a href="#motor-internals">Motor Internals</a>
+<a href="#smart-openers">Smart & Security</a>
+<a href="#led-interference">LED / EMI</a>
+<a href="#troubleshooting">Troubleshooting</a>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 1: DOOR SYSTEM                      -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="door-system">
+<div class="section-header">
+<div class="section-tag">01 / Mechanics</div>
+<div class="section-title">Sectional Door System</div>
+</div>
+<div class="canvas-wrap" id="doorWrap">
+<canvas id="doorCanvas"></canvas>
+<div class="controls-bar">
+<button class="ctrl-btn" onclick="toggleDoor()">Open / Close</button>
+<button class="ctrl-btn" id="armToggle" onclick="toggleArm()">J-Arm</button>
+</div>
+<div class="canvas-label">Click + drag to rotate · Open/Close to animate</div>
+</div>
+<div id="doorReadout" class="readout">
+<div class="readout-item"><div class="readout-label">Door Position</div><div class="readout-value" id="doorPosVal">0<span class="readout-unit">%</span></div></div>
+<div class="readout-item"><div class="readout-label">Panel Angle</div><div class="readout-value" id="panelAngleVal">0<span class="readout-unit">°</span></div></div>
+<div class="readout-item"><div class="readout-label">Cable Tension</div><div class="readout-value" id="cableTensionVal">42<span class="readout-unit">lbs</span></div></div>
+<div class="readout-item"><div class="readout-label">Spring Torque</div><div class="readout-value" id="springTorqueVal">85<span class="readout-unit">ft·lb</span></div></div>
+<div class="readout-item"><div class="readout-label">Roller Speed</div><div class="readout-value" id="rollerSpeedVal">0<span class="readout-unit">rpm</span></div></div>
+</div>
+<div class="info-grid">
+<div class="info-card"><h3>Sectional Panels</h3><p>A standard residential door has 4–5 panels (18–24″ tall) connected by hinges. Panels articulate through the curved track section, transitioning from vertical to horizontal along the ceiling-mounted horizontal track.</p></div>
+<div class="info-card"><h3>Track System</h3><p>Vertical tracks on both sides, a curved radius section (12–15″ radius), and horizontal tracks angled slightly upward (~1″/ft). Steel rollers in each hinge ride within the C-channel track. The track supports the full door weight during transition.</p></div>
+<div class="info-card"><h3>Counterbalance</h3><p>A 150–250 lb door would be impossible to lift without counterbalance. Torsion springs store energy equal to the door's weight, making it effectively "weightless" at any position — the neutral balance point.</p></div>
+<div class="info-card"><h3>Lift Cables & Drums</h3><p>Aircraft-grade steel cables wind onto drums with spiral grooves at each end of the torsion shaft. The drum's increasing spiral diameter provides variable mechanical advantage matching the door's changing weight distribution as it opens.</p></div>
+<div class="info-card"><h3>J-Arm Linkage</h3><p>A curved J-arm (or straight arm for commercial) connects the trolley to the door's top bracket. As the door opens, the arm pivots at the bracket, accommodating the geometry change as panels transition through the track curve.</p></div>
+<div class="info-card"><h3>Weatherseal System</h3><p>Bottom rubber astragal seal, side and top weatherstripping, and inter-panel seals between sections. The bottom bracket assembly anchors the lift cables and includes adjustable tension bolts for cable length fine-tuning.</p></div>
+</div>
+</div>
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 2: TORSION SPRINGS                  -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="torsion-springs">
+<div class="section-header">
+<div class="section-tag">02 / Physics</div>
+<div class="section-title">Torsion Spring Physics</div>
+</div>
+<div class="canvas-wrap">
+<canvas id="springCanvas"></canvas>
+<div class="controls-bar">
+<button class="ctrl-btn" onclick="windSpring()">Wind ↻</button>
+<button class="ctrl-btn" onclick="unwindSpring()">Unwind ↺</button>
+</div>
+<div class="canvas-label">Wind/Unwind to see spring physics and stress</div>
+</div>
+<div class="readout">
+<div class="readout-item"><div class="readout-label">Turns Wound</div><div class="readout-value" id="turnsVal">0.0<span class="readout-unit"> turns</span></div></div>
+<div class="readout-item"><div class="readout-label">Stored Energy</div><div class="readout-value" id="energyVal">0<span class="readout-unit"> ft·lb</span></div></div>
+<div class="readout-item"><div class="readout-label">Torque</div><div class="readout-value" id="torqueVal">0<span class="readout-unit"> in·lb</span></div></div>
+<div class="readout-item"><div class="readout-label">Wire Stress</div><div class="readout-value" id="stressVal">0<span class="readout-unit"> psi</span></div></div>
+</div>
+
+<!-- SPRING CALCULATOR -->
+<h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;margin:2rem 0 1rem;font-size:1.2rem;color:var(--accent)">Spring Calculator</h3>
+<div class="calc-grid">
+<div class="calc-inputs">
+<div class="slider-group"><label>Wire Gauge (diameter): <span id="wireDisplay">0.234</span>"</label>
+<input type="range" id="wireSlider" min="177" max="312" value="234" oninput="updateCalc()"></div>
+<div class="slider-group"><label>Coil Inside Diameter: <span id="coilIDDisplay">2.00</span>"</label>
+<input type="range" id="coilIDSlider" min="175" max="250" value="200" oninput="updateCalc()"></div>
+<div class="slider-group"><label>Number of Coils: <span id="coilCountDisplay">120</span></label>
+<input type="range" id="coilCountSlider" min="50" max="300" value="120" oninput="updateCalc()"></div>
+<div class="slider-group"><label>Door Weight: <span id="weightDisplay">150</span> lbs</label>
+<input type="range" id="weightSlider" min="80" max="400" value="150" oninput="updateCalc()"></div>
+</div>
+<div class="calc-result">
+<h4>Calculated Values</h4>
+<div class="calc-row"><span class="calc-key">IPPT (in·lb/turn)</span><span class="calc-val" id="calcIPPT">—</span></div>
+<div class="calc-row"><span class="calc-key">Turns Required</span><span class="calc-val" id="calcTurns">—</span></div>
+<div class="calc-row"><span class="calc-key">Max Torque</span><span class="calc-val" id="calcTorque">—</span></div>
+<div class="calc-row"><span class="calc-key">Stored Energy</span><span class="calc-val" id="calcEnergy">—</span></div>
+<div class="calc-row"><span class="calc-key">Max Wire Stress</span><span class="calc-val" id="calcStress">—</span></div>
+<div class="calc-row"><span class="calc-key">Cycle Life (est.)</span><span class="calc-val" id="calcLife">—</span></div>
+<div class="calc-row"><span class="calc-key">Spring Length</span><span class="calc-val" id="calcLength">—</span></div>
+<div class="calc-row"><span class="calc-key">Status</span><span class="calc-val" id="calcStatus">—</span></div>
+</div>
+</div>
+
+<!-- FORCE BALANCE CHART -->
+<h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;margin:2rem 0 1rem;font-size:1.2rem;color:var(--accent)">Force Balance Diagram</h3>
+<p style="color:var(--text2);font-size:.9rem;margin-bottom:.5rem">Shows how spring counterbalance force matches door weight across travel. A perfectly balanced door has overlapping curves.</p>
+<div class="slider-group"><label>Spring Tension Adjust: <span id="tensionDisplay">0</span> quarter-turns</label>
+<input type="range" id="tensionSlider" min="-8" max="8" value="0" oninput="drawForceBalance()"></div>
+<div class="chart-container">
+<canvas class="chart-canvas" id="forceChart"></canvas>
+<div class="chart-legend">
+<div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Door Effective Weight</div>
+<div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div>Spring Counterbalance</div>
+<div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>Balance Zone</div>
+</div>
+</div>
+
+<div class="warning-box">
+<h4>⚠ Extreme Danger — Torsion Springs</h4>
+<p>A fully wound torsion spring stores 100–300+ ft·lbs of energy. Spring replacement should ONLY be performed by trained professionals with proper winding bars. Never use screwdrivers, adjustable wrenches, or vice grips on winding cones.</p>
+</div>
+<div class="info-grid">
+<div class="info-card"><h3>Hooke's Law for Torsion</h3><p>τ = κθ — Torque equals spring constant times angular displacement. The constant depends on wire diameter (d⁴), coil diameter (D), active coils (N), and shear modulus (G): κ = d⁴G / (10.8DN).</p></div>
+<div class="info-card"><h3>Cycle Life</h3><p>Standard springs: ~10,000 cycles (~7 years at 4/day). High-cycle oil-tempered wire reaches 25,000–100,000 cycles. Life is inversely related to max stress as a % of ultimate tensile strength.</p></div>
+<div class="info-card"><h3>IPPT Calculation</h3><p>Inch-Pounds Per Turn is the key matching spec. Total turns needed = (door weight × drum radius) / IPPT. Getting this wrong means an unbalanced door that strains the opener.</p></div>
+<div class="info-card"><h3>Dual Spring Systems</h3><p>Two springs on a shared shaft provide redundancy (one breaks, other prevents free-fall), balanced force distribution, and smaller individual springs fitting available headroom.</p></div>
+</div>
+</div>
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 3: EXTENSION SPRINGS (NEW)          -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="extension-springs">
+<div class="section-header">
+<div class="section-tag">03 / Legacy System</div>
+<div class="section-title">Extension Springs</div>
+</div>
+<div class="canvas-wrap">
+<canvas id="extSpringCanvas"></canvas>
+<div class="controls-bar">
+<button class="ctrl-btn" onclick="toggleExtDoor()">Open / Close</button>
+<button class="ctrl-btn" onclick="toggleSafetyCable()">Safety Cable</button>
+</div>
+<div class="canvas-label">Extension springs stretch as door opens</div>
+</div>
+<div class="readout">
+<div class="readout-item"><div class="readout-label">Spring Stretch</div><div class="readout-value" id="extStretchVal">0.0<span class="readout-unit"> in</span></div></div>
+<div class="readout-item"><div class="readout-label">Spring Force (F=kx)</div><div class="readout-value" id="extForceVal">0<span class="readout-unit"> lbs</span></div></div>
+<div class="readout-item"><div class="readout-label">Door Weight @Pos</div><div class="readout-value" id="extWeightVal">150<span class="readout-unit"> lbs</span></div></div>
+<div class="readout-item"><div class="readout-label">Imbalance</div><div class="readout-value" id="extImbalVal">0<span class="readout-unit"> lbs</span></div></div>
+</div>
+<div class="info-grid">
+<div class="info-card"><h3>Linear Force (F = kx)</h3><p>Extension springs follow Hooke's law linearly: force is proportional to stretch distance. This creates an inherent mismatch with the door's non-linear weight curve, meaning the door feels "heavy" at certain positions and "light" at others.</p></div>
+<div class="info-card"><h3>Safety Cables</h3><p>A steel cable runs through the center of each spring, anchored at both ends. If the spring breaks, the cable captures the broken coils instead of them becoming high-velocity projectiles. Required by code but often missing on older installations.</p></div>
+<div class="info-card"><h3>Pulley System</h3><p>Cables route from the spring through pulleys on the horizontal track support, creating a 2:1 mechanical advantage. The pulley fork mounts on the track angle and the cable connects to the bottom bracket on the door.</p></div>
+<div class="info-card"><h3>Why Torsion Replaced Them</h3><p>Torsion springs offer: better force curve matching (non-linear torque), contained failure mode (springs stay on shaft), higher cycle life, smoother operation, and more precise balance. Extension springs are cheaper but inferior in every engineering metric.</p></div>
+</div>
+<div class="warning-box">
+<h4>⚠ Extension Spring Failure Mode</h4>
+<p>When an extension spring breaks without a safety cable, the broken halves fly outward at high velocity — enough force to penetrate drywall, break car windows, or cause severe injury. Always verify safety cables are present and properly anchored on extension spring systems.</p>
+</div>
+</div>
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 4: MOTOR TYPES                      -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="motor-types">
+<div class="section-header">
+<div class="section-tag">04 / Drive Systems</div>
+<div class="section-title">Garage Door Opener Types</div>
+</div>
+<div class="tabs">
+<button class="tab-btn active" onclick="showTab('chain',this)">Chain Drive</button>
+<button class="tab-btn" onclick="showTab('belt',this)">Belt Drive</button>
+<button class="tab-btn" onclick="showTab('screw',this)">Screw Drive</button>
+<button class="tab-btn" onclick="showTab('direct',this)">Direct Drive</button>
+<button class="tab-btn" onclick="showTab('jackshaft',this)">Jackshaft</button>
+</div>
+<div class="tab-content active" id="tab-chain">
+<div class="canvas-wrap"><canvas id="chainCanvas"></canvas><div class="canvas-label">Chain Drive — Metal roller chain on sprocket</div></div>
+<div class="info-grid">
+<div class="info-card"><h3>How It Works</h3><p>A metal roller chain loops around a sprocket on the motor and an idler at the rail's far end. The chain connects to a trolley riding the T-rail. Motor turns sprocket → chain moves → trolley moves → door arm pushes/pulls door.</p></div>
+<div class="info-card"><h3>Pros & Cons</h3><p><strong style="color:var(--success)">+</strong> Most affordable ($150–250), extremely durable, high lifting force, widely available parts.<br><strong style="color:var(--danger)">−</strong> Loudest type (metal-on-metal ~70dB), vibration, needs periodic lubrication, chain stretches over time.</p></div>
+</div>
+</div>
+<div class="tab-content" id="tab-belt">
+<div class="canvas-wrap"><canvas id="beltCanvas"></canvas><div class="canvas-label">Belt Drive — Steel-reinforced polyurethane belt</div></div>
+<div class="info-grid">
+<div class="info-card"><h3>How It Works</h3><p>Replaces chain with a steel-reinforced rubber/polyurethane belt around drive and idler pulleys. Fiberglass or steel cord prevents stretching. Same trolley/rail mechanism but virtually silent due to belt damping vibrations.</p></div>
+<div class="info-card"><h3>Pros & Cons</h3><p><strong style="color:var(--success)">+</strong> Near-silent (~50dB), no lubrication, smooth accel/decel, reduced vibration, ideal for rooms above garage.<br><strong style="color:var(--danger)">−</strong> Higher cost ($200–400), belt replacement pricier, slightly less force, heat affects belt in extremes.</p></div>
+</div>
+</div>
+<div class="tab-content" id="tab-screw">
+<div class="canvas-wrap"><canvas id="screwCanvas"></canvas><div class="canvas-label">Screw Drive — Rotating threaded steel rod</div></div>
+<div class="info-grid">
+<div class="info-card"><h3>How It Works</h3><p>A long threaded rod spans the rail. Motor rotates the rod directly. A trolley with internal threads rides along it — like a nut on a bolt. Fewest moving parts. Thread pitch determines speed vs. force tradeoff.</p></div>
+<div class="info-card"><h3>Pros & Cons</h3><p><strong style="color:var(--success)">+</strong> Fewest parts, fast speed (8–12 in/sec), minimal maintenance, consistent force.<br><strong style="color:var(--danger)">−</strong> Moderate noise (~60dB), temperature sensitive (grease viscosity), limited manufacturers (Genie primary).</p></div>
+</div>
+</div>
+<div class="tab-content" id="tab-direct">
+<div class="canvas-wrap"><canvas id="directCanvas"></canvas><div class="canvas-label">Direct Drive — Motor IS the trolley, rides on fixed chain</div></div>
+<div class="info-grid">
+<div class="info-card"><h3>How It Works</h3><p>Design inversion: the motor unit is the trolley. An internal gear meshes with a stationary chain in the rail. The motor physically travels along the rail. Only ONE moving part. Pioneered by Sommer (German engineering).</p></div>
+<div class="info-card"><h3>Pros & Cons</h3><p><strong style="color:var(--success)">+</strong> Quietest type (~45dB), 1 moving part, nearly zero maintenance, lifetime warranty common.<br><strong style="color:var(--danger)">−</strong> Highest cost ($300–500+), limited brands (Chamberlain/LiftMaster), heavier rail, flexible power cable needed.</p></div>
+</div>
+</div>
+<div class="tab-content" id="tab-jackshaft">
+<div class="canvas-wrap"><canvas id="jackCanvas"></canvas><div class="canvas-label">Jackshaft — Wall-mounted, drives torsion shaft directly</div></div>
+<div class="info-grid">
+<div class="info-card"><h3>How It Works</h3><p>Motor mounts on the wall beside the torsion shaft and drives it directly via gear reduction. Eliminates the ceiling rail entirely. The torsion shaft + cable drum system does the actual lifting, just like manual operation but motorized. LiftMaster 8500W is the dominant product.</p></div>
+<div class="info-card"><h3>Pros & Cons</h3><p><strong style="color:var(--success)">+</strong> Frees ceiling space (high-lift garages, storage, car lifts), very quiet, clean installation, works with any door type.<br><strong style="color:var(--danger)">−</strong> Most expensive ($350–600+), requires torsion spring system (won't work with extension), limited to residential 7' doors without special kits.</p></div>
+</div>
+</div>
+<table class="specs-table">
+<thead><tr><th>Spec</th><th>Chain</th><th>Belt</th><th>Screw</th><th>Direct</th><th>Jackshaft</th></tr></thead>
+<tbody>
+<tr><td>Noise Level</td><td>70+ dB</td><td>50–55 dB</td><td>~60 dB</td><td>~45 dB</td><td>~50 dB</td></tr>
+<tr><td>Price Range</td><td>$150–250</td><td>$200–400</td><td>$175–300</td><td>$300–500+</td><td>$350–600+</td></tr>
+<tr><td>Lifting Force</td><td>Excellent</td><td>Good–Exc.</td><td>Good</td><td>Good</td><td>Excellent</td></tr>
+<tr><td>Maintenance</td><td>Regular lube</td><td>Minimal</td><td>Grease</td><td>~Zero</td><td>Minimal</td></tr>
+<tr><td>Speed</td><td>6–8 in/s</td><td>6–8 in/s</td><td>8–12 in/s</td><td>6–7 in/s</td><td>7–8 in/s</td></tr>
+<tr><td>Best For</td><td>Budget</td><td>Attached</td><td>One-piece</td><td>Premium</td><td>High ceiling</td></tr>
+</tbody>
+</table>
+</div>
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 5: MOTOR INTERNALS                  -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="motor-internals">
+<div class="section-header">
+<div class="section-tag">05 / Electromechanical</div>
+<div class="section-title">Inside the Motor Unit</div>
+</div>
+<div class="canvas-wrap" style="height:520px" id="motorWrap">
+<canvas id="motorCanvas"></canvas>
+<div class="controls-bar">
+<button class="ctrl-btn" onclick="toggleMotorExplode()">Exploded View</button>
+<button class="ctrl-btn" onclick="toggleMotorRun()">Run Motor</button>
+<button class="ctrl-btn" onclick="toggleCurrentFlow()">Show Current</button>
+</div>
+<div class="canvas-label">Explode to see internals · Run to animate · Show current flow</div>
+</div>
+
+<!-- Worm Gear Interactive -->
+<h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;margin:2rem 0 1rem;font-size:1.2rem;color:var(--accent)">Worm Gear Ratio</h3>
+<div class="slider-group"><label>Gear Ratio: <span id="ratioDisplay">40</span>:1</label>
+<input type="range" id="ratioSlider" min="20" max="80" value="40" oninput="updateGearRatio()"></div>
+<div class="readout">
+<div class="readout-item"><div class="readout-label">Motor RPM</div><div class="readout-value" id="motorRPMVal">1725<span class="readout-unit"> rpm</span></div></div>
+<div class="readout-item"><div class="readout-label">Output RPM</div><div class="readout-value" id="outputRPMVal">43<span class="readout-unit"> rpm</span></div></div>
+<div class="readout-item"><div class="readout-label">Torque Multiplier</div><div class="readout-value" id="torqueMultVal">40<span class="readout-unit">×</span></div></div>
+<div class="readout-item"><div class="readout-label">Self-Locking</div><div class="readout-value" id="selfLockVal" style="color:var(--success)">Yes</div></div>
+</div>
+<div class="info-grid">
+<div class="info-card"><h3>Motor (PSC / DC)</h3><p>Residential: ½–1½ HP PSC AC motor (stator + squirrel-cage rotor + run capacitor). Modern units use DC motors with permanent magnets for variable speed, soft start, and battery backup capability.</p></div>
+<div class="info-card"><h3>Gear Reduction</h3><p>Worm gear (40:1–60:1) converts 1,725+ RPM to 30–60 RPM. The worm gear is self-locking — the door's weight can't back-drive the motor, acting as a built-in brake when power is off.</p></div>
+<div class="info-card"><h3>Limit Switches</h3><p>Two adjustable switches track drive shaft rotation. When trolley reaches full open/close, the gear trips the limit switch cutting motor power. Mis-adjusted limits cause incomplete travel or motor strain.</p></div>
+<div class="info-card"><h3>Safety Reversal (UL 325)</h3><p>Federal law requires two independent systems: (1) photoelectric sensors at 6″ height reversing on broken IR beam, and (2) force-sensing via motor current monitoring. Both must function for close mode.</p></div>
+<div class="info-card"><h3>Soft Start / RPM Governor</h3><p>Electronic speed control ramps voltage over ~1 second at start and slows before limits. Reduces mechanical stress and peak current from ~8A to ~4A at startup.</p></div>
+<div class="info-card"><h3>Manual Release</h3><p>Red emergency cord disconnects trolley from carriage via spring-loaded latch. Allows manual operation during power outages. Re-engagement is automatic when motor runs.</p></div>
+</div>
+
+<div class="tip-box">
+<h4>💡 DC vs AC Motors — The Industry Shift</h4>
+<p>DC motors are replacing AC in premium openers: they enable true variable speed (slow at start/stop), instant reversal without relay switching, battery backup with seamless failover, and quieter operation. LiftMaster's Secure View uses a DC motor with an integrated camera and LED panel — the motor, light, and camera share the same DC power rail.</p>
+</div>
+</div>
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 6: SMART & SECURITY                 -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="smart-openers">
+<div class="section-header">
+<div class="section-tag">06 / Connected</div>
+<div class="section-title">Smart Openers & Security</div>
+</div>
+
+<!-- Rolling Code Animation -->
+<h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;margin:0 0 1rem;font-size:1.2rem;color:var(--accent)">Rolling Code Encryption</h3>
+<p style="color:var(--text2);font-size:.9rem;margin-bottom:1rem">Each button press sends a unique encrypted code. Watch how the synchronized counter prevents replay attacks:</p>
+<div class="code-anim">
+<div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:1rem">
+<div style="text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem">Remote Transmits</div><div class="code-display" id="remoteCode"></div></div>
+<div style="text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem">Opener Expects</div><div class="code-display" id="openerCode"></div></div>
+</div>
+<div style="text-align:center;margin-top:1rem">
+<button class="ctrl-btn" onclick="sendRollingCode()" style="margin:.3rem">Send Valid Code</button>
+<button class="ctrl-btn" onclick="replayAttack()" style="margin:.3rem">Replay Old Code</button>
+</div>
+<div class="code-status valid" id="codeStatus">Synchronized — Ready</div>
+</div>
+
+<div class="canvas-wrap" style="height:380px">
+<canvas id="smartCanvas"></canvas>
+<div class="canvas-label">Smart home integration ecosystem</div>
+</div>
+
+<div class="info-grid">
+<div class="info-card"><h3>myQ / Wi-Fi</h3><p>Chamberlain/LiftMaster's myQ: built-in 2.4GHz Wi-Fi, embedded Linux, TLS encrypted cloud communication. Command path: Phone → myQ Cloud → Router → Opener. 2–5 second latency. Supports geofencing, scheduling, guest access.</p></div>
+<div class="info-card"><h3>Security+ 2.0</h3><p>Rolling code with 100-billion-code pseudo-random sequence. Each transmission unique, making replay attacks impossible. Wi-Fi adds TLS 1.2/1.3. Opener validates code AND authenticated session token.</p></div>
+<div class="info-card"><h3>Retrofit Options</h3><p>For non-smart openers: Meross, Tailwind iQ3, myQ Hub wire to button terminals + door tilt sensor. Z-Wave (GoControl, Zooz) for SmartThings/Hubitat. ratgdo for local MQTT/ESPHome control via Security+ serial bus.</p></div>
+<div class="info-card"><h3>Matter Protocol</h3><p>The future: local control without cloud dependency, cross-platform (Apple/Google/Amazon), Thread mesh networking. Slow rollout but promises universal garage door control without manufacturer lock-in.</p></div>
+</div>
+<div class="tip-box">
+<h4>💡 ratgdo — Local Control Revolution</h4>
+<p>The ratgdo project taps directly into the Security+ 2.0 serial bus on LiftMaster/Chamberlain openers, providing local MQTT or ESPHome control without cloud dependency. Works with Home Assistant, completely eliminating the myQ cloud requirement. This is what power users want — no internet needed, no API changes breaking integrations.</p>
+</div>
+</div>
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 7: LED / EMI INTERFERENCE           -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="led-interference">
+<div class="section-header">
+<div class="section-tag">07 / Electromagnetic</div>
+<div class="section-title">LED Radio Interference</div>
+</div>
+<p style="color:var(--text2);font-size:1rem;max-width:800px;margin-bottom:1.5rem">The most common and frustrating problem in the garage door industry: LED bulbs interfering with remotes, sensors, and Wi-Fi. Here's the science.</p>
+
+<!-- OSCILLOSCOPE -->
+<h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;margin:0 0 1rem;font-size:1.2rem;color:var(--accent)">RF Signal vs LED Noise — Oscilloscope View</h3>
+<div class="scope-container">
+<div class="scope-header">
+<span class="scope-title">315 MHz Receiver Input</span>
+<span class="scope-readout" id="scopeSNR">SNR: 24 dB — Signal Clear</span>
+</div>
+<canvas class="scope-canvas" id="scopeCanvas"></canvas>
+</div>
+<div class="slider-group"><label>LED Bulb Wattage: <span id="scopeWattDisplay">0</span>W (off)</label>
+<input type="range" id="scopeWattSlider" min="0" max="20" value="0" oninput="updateScope()"></div>
+
+<!-- LED CUTAWAY -->
+<div class="canvas-wrap" style="height:400px">
+<canvas id="ledCanvas"></canvas>
+<div class="controls-bar">
+<button class="ctrl-btn" onclick="toggleLEDOn()">Toggle Bulb On/Off</button>
+</div>
+<div class="canvas-label">LED bulb cutaway — see the EMI source inside</div>
+</div>
+
+<!-- FREQUENCY SPECTRUM -->
+<div class="signal-diagram">
+<h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem;color:var(--accent);font-size:1rem">RF Spectrum Overlap</h3>
+<div class="freq-bar"><span class="freq-label">Garage Remote<br>(310–390 MHz)</span><div class="freq-track"><div class="freq-fill" style="width:25%;left:15%;background:var(--accent)"></div></div></div>
+<div class="freq-bar"><span class="freq-label">LED EMI Noise<br>(Broadband)</span><div class="freq-track"><div class="freq-fill" id="emiBar" style="width:10%;background:linear-gradient(90deg,rgba(239,68,68,.2),var(--danger),rgba(239,68,68,.2))"></div></div></div>
+<div class="freq-bar"><span class="freq-label">Wi-Fi 2.4 GHz</span><div class="freq-track"><div class="freq-fill" style="width:15%;left:70%;background:var(--accent3)"></div></div></div>
+<div class="freq-bar"><span class="freq-label">Safety Sensors<br>(IR modulated)</span><div class="freq-track"><div class="freq-fill" style="width:8%;left:5%;background:var(--success)"></div></div></div>
+</div>
+
+<!-- WATTAGE SELECTOR -->
+<h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;margin:2rem 0 1rem;font-size:1.1rem">Wattage vs Remote Range</h3>
+<div class="interference-demo">
+<div class="bulb-demo active" onclick="selectBulb(this,5)"><div class="bulb-icon">💡</div><div style="font-family:'Oswald',sans-serif;font-size:.85rem">5W LED</div><div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--text2);margin-top:.2rem">~450 lm</div></div>
+<div class="bulb-demo" onclick="selectBulb(this,8)"><div class="bulb-icon">💡</div><div style="font-family:'Oswald',sans-serif;font-size:.85rem">8W LED</div><div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--text2);margin-top:.2rem">~800 lm</div></div>
+<div class="bulb-demo" onclick="selectBulb(this,12)"><div class="bulb-icon">💡</div><div style="font-family:'Oswald',sans-serif;font-size:.85rem">12W LED</div><div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--text2);margin-top:.2rem">~1100 lm</div></div>
+<div class="bulb-demo" onclick="selectBulb(this,15)"><div class="bulb-icon">💡</div><div style="font-family:'Oswald',sans-serif;font-size:.85rem">15W LED</div><div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--text2);margin-top:.2rem">~1500 lm</div></div>
+<div style="text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--text2);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.4rem">Remote Range</div><div class="signal-strength" id="signalMeter" style="color:var(--success);border-color:var(--success)">50ft</div></div>
+</div>
+
+<div class="info-grid">
+<div class="info-card"><h3>Root Cause: SMPS</h3><p>LED bulbs contain a switching power supply converting 120V AC to low-voltage DC. The switching circuit (20kHz–MHz) radiates broadband EMI. Cheap drivers with inadequate filtering act as tiny radio transmitters jamming the 300–400 MHz band.</p></div>
+<div class="info-card"><h3>Why 8W Is the Threshold</h3><p>Below ~8W, driver circuits are simple enough that EMI stays below receiver noise floor. Above 8W, higher current demands require more aggressive switching, producing exponentially more RF noise. A 15W LED can produce 10–20× the interference of an 8W.</p></div>
+<div class="info-card"><h3>Symptoms</h3><p>Reduced remote range (50ft→5ft), intermittent remote failure, safety sensor "ghost" triggers, myQ connectivity drops, wall console flickering. Key test: remove all LED bulbs, test remote range. If range returns to normal, LEDs are the culprit.</p></div>
+<div class="info-card"><h3>Solutions</h3><p><strong>Best:</strong> Garage door rated LEDs (Genie/Chamberlain branded, with EMI filtering). <strong>Good:</strong> Rough-service incandescent bulbs. <strong>OK:</strong> Ferrite snap-on chokes on bulb wiring. <strong>Also:</strong> Ensure antenna wire hangs full length, straight down.</p></div>
+</div>
+<div class="warning-box">
+<h4>⚠ Wi-Fi Smart Openers Are Extra Sensitive</h4>
+<p>Smart openers receive on multiple bands simultaneously (315/390 MHz for remotes AND 2.4 GHz for Wi-Fi). Cheap LED EMI blankets both. If myQ keeps disconnecting, the LED bulbs are the #1 suspect before blaming your router.</p>
+</div>
+</div>
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 8: TROUBLESHOOTING                  -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="troubleshooting">
+<div class="section-header">
+<div class="section-tag">08 / Diagnostics</div>
+<div class="section-title">Troubleshooting Guide</div>
+</div>
+<p style="color:var(--text2);font-size:1rem;margin-bottom:1.5rem">Click a symptom to expand the diagnostic path:</p>
+<div class="flowchart" id="flowchart"></div>
+</div>
+
+<!-- ═══════ FOOTER ═══════ -->
+<div class="footer">
+<p style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem">The Science of Garage Doors — v2.0</p>
+<p>Interactive educational reference — Physics, Engineering & Electronics</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- THREE.JS & INTERACTION SCRIPTS                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════
+// UTILITIES
+// ══════════════════════════════
+const scenes = {};
+let soundEnabled = false, audioCtx = null;
+
+// Helper to create+position a mesh without Object.assign on read-only props
+function mk(mesh, opts) {
+  if (opts.position) { const p = opts.position; mesh.position.set(p.x||0, p.y||0, p.z||0); }
+  if (opts.rotation) { const r = opts.rotation; mesh.rotation.set(r.x||0, r.y||0, r.z||0); }
+  if (opts.scale) { const s = opts.scale; mesh.scale.set(s.x||1, s.y||1, s.z||1); }
+  return mesh;
+}
+
+function makeRenderer(canvas) {
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  r.setClearColor(0x141418, 1);
+  r.toneMapping = THREE.ACESFilmicToneMapping;
+  r.toneMappingExposure = 1.3;
+  return r;
+}
+function fitRenderer(r, c) {
+  const w = c.parentElement.clientWidth, h = c.parentElement.clientHeight;
+  if (c.width !== w || c.height !== h) r.setSize(w, h, false);
+  return { w, h };
+}
+function addLights(s) {
+  s.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const d = new THREE.DirectionalLight(0xffffff, 1.0);
+  d.position.set(5, 8, 6);
+  s.add(d);
+  // Fill light from opposite side
+  const fill = new THREE.DirectionalLight(0x8899cc, 0.5);
+  fill.position.set(-4, 3, -5);
+  s.add(fill);
+  // Rim light from behind/below for edge definition
+  const rim = new THREE.DirectionalLight(0xffa54f, 0.3);
+  rim.position.set(0, -2, -6);
+  s.add(rim);
+  // Top light
+  const top = new THREE.DirectionalLight(0xffffff, 0.3);
+  top.position.set(0, 10, 0);
+  s.add(top);
+}
+function orbitControls(cam, canvas, customTarget) {
+  let drag = false, px = 0, py = 0, ry = 0.3, rx = 0.3;
+  const R = cam.position.length();
+  const target = customTarget || new THREE.Vector3(0, cam.position.y * 0.3, 0);
+  function update() {
+    cam.position.x = R * Math.sin(ry) * Math.cos(rx) + target.x;
+    cam.position.y = R * Math.sin(rx) + target.y;
+    cam.position.z = R * Math.cos(ry) * Math.cos(rx) + target.z;
+    cam.lookAt(target);
+  }
+  canvas.addEventListener('pointerdown', e => { drag = true; px = e.clientX; py = e.clientY; });
+  canvas.addEventListener('pointermove', e => { if (!drag) return; ry += (e.clientX - px) * 0.005; rx = Math.max(-1.2, Math.min(1.2, rx + (e.clientY - py) * 0.005)); px = e.clientX; py = e.clientY; update(); });
+  canvas.addEventListener('pointerup', () => drag = false);
+  canvas.addEventListener('pointerleave', () => drag = false);
+  canvas.addEventListener('touchstart', e => { drag=true; px=e.touches[0].clientX; py=e.touches[0].clientY; }, {passive:true});
+  canvas.addEventListener('touchmove', e => { if(!drag)return; const t=e.touches[0]; ry+=(t.clientX-px)*0.005; rx=Math.max(-1.2,Math.min(1.2,rx+(t.clientY-py)*0.005)); px=t.clientX; py=t.clientY; update(); }, {passive:true});
+  canvas.addEventListener('touchend', ()=>drag=false);
+  update();
+}
+
+// Materials - BRIGHT palette for dark backgrounds
+const M = {
+  orange: new THREE.MeshStandardMaterial({ color: 0xff7e3e, metalness: 0.2, roughness: 0.45, emissive: 0xff6b2b, emissiveIntensity: 0.08 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0xb0b0b8, metalness: 0.5, roughness: 0.3 }),
+  darkSteel: new THREE.MeshStandardMaterial({ color: 0x7a7a85, metalness: 0.5, roughness: 0.35 }),
+  panel: new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.05, roughness: 0.6 }),
+  rubber: new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.02, roughness: 0.95 }),
+  copper: new THREE.MeshStandardMaterial({ color: 0xee9944, metalness: 0.45, roughness: 0.3, emissive: 0xcc7722, emissiveIntensity: 0.1 }),
+  green: new THREE.MeshStandardMaterial({ color: 0x44dd77, metalness: 0.15, roughness: 0.4, emissive: 0x22aa55, emissiveIntensity: 0.1 }),
+  cyan: new THREE.MeshStandardMaterial({ color: 0x44ddee, metalness: 0.15, roughness: 0.4, emissive: 0x22ccdd, emissiveIntensity: 0.15 }),
+  red: new THREE.MeshStandardMaterial({ color: 0xff5555, metalness: 0.3, roughness: 0.3, emissive: 0xff3333, emissiveIntensity: 0.1 }),
+  frame: new THREE.MeshStandardMaterial({ color: 0x6a6a72, metalness: 0.35, roughness: 0.5 }),
+  blue: new THREE.MeshStandardMaterial({ color: 0x4488cc, metalness: 0.2, roughness: 0.5, emissive: 0x2266aa, emissiveIntensity: 0.08 }),
+  pcb: new THREE.MeshStandardMaterial({ color: 0x228844, roughness: 0.6, emissive: 0x115522, emissiveIntensity: 0.08 }),
+  glow: new THREE.MeshStandardMaterial({ color: 0xffcc44, emissive: 0xffaa00, emissiveIntensity: 1.0 }),
+  wire: new THREE.MeshStandardMaterial({ color: 0x888890, metalness: 0.4, roughness: 0.35 }),
+};
+
+// Scroll observer for section reveal
+const sectionObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.05 });
+document.querySelectorAll('.section').forEach(s => sectionObs.observe(s));
+
+// Scene activation observer — pause off-screen scenes
+const sceneObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    const id = e.target.querySelector('canvas')?.id;
+    if (id && scenes[id]) scenes[id].active = e.isIntersecting;
+  });
+}, { threshold: 0.01 });
+document.querySelectorAll('.canvas-wrap').forEach(w => sceneObs.observe(w));
+
+// ══════════════════════════════
+// SOUND SYSTEM
+// ══════════════════════════════
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+  if (soundEnabled && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playSound(type) {
+  if (!soundEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const g = audioCtx.createGain();
+  g.connect(audioCtx.destination);
+  if (type === 'click') {
+    const o = audioCtx.createOscillator(); o.type = 'square'; o.frequency.value = 800;
+    o.connect(g); g.gain.setValueAtTime(0.05, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    o.start(now); o.stop(now + 0.05);
+  } else if (type === 'motor') {
+    const o = audioCtx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 120;
+    const f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300;
+    o.connect(f); f.connect(g); g.gain.setValueAtTime(0.03, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    o.start(now); o.stop(now + 0.3);
+  }
+}
+
+// ══════════════════════════════
+// SCENE 0: HERO
+// ══════════════════════════════
+(function() {
+  const c = document.getElementById('heroCanvas'), r = makeRenderer(c);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+  cam.position.set(0, 0, 20);
+  addLights(s);
+  const objs = [];
+  for (let i = 0; i < 30; i++) {
+    let mesh;
+    if (Math.random() > 0.5) {
+      mesh = new THREE.Mesh(new THREE.TorusGeometry(0.3 + Math.random() * 0.5, 0.08, 8, 20),
+        new THREE.MeshStandardMaterial({ color: 0xff6b2b, metalness: 0.4, roughness: 0.3, transparent: true, opacity: 0.2 + Math.random() * 0.15, emissive: 0xff6b2b, emissiveIntensity: 0.15 }));
+    } else {
+      const pts = [];
+      for (let t = 0; t < Math.PI * 6; t += 0.25) pts.push(new THREE.Vector3(Math.cos(t) * 0.3, t * 0.05, Math.sin(t) * 0.3));
+      mesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.03, 6, false),
+        new THREE.MeshStandardMaterial({ color: 0xffa733, metalness: 0.3, roughness: 0.3, transparent: true, opacity: 0.18 + Math.random() * 0.12, emissive: 0xffa733, emissiveIntensity: 0.12 }));
+    }
+    mesh.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 10 - 5);
+    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+    mesh.userData.spd = { x: (Math.random() - 0.5) * 0.004, y: (Math.random() - 0.5) * 0.004, z: (Math.random() - 0.5) * 0.002 };
+    s.add(mesh); objs.push(mesh);
+  }
+  scenes.heroCanvas = { active: true };
+  (function anim() {
+    requestAnimationFrame(anim);
+    if (!scenes.heroCanvas.active) return;
+    const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
+    objs.forEach(o => { o.rotation.x += o.userData.spd.x; o.rotation.y += o.userData.spd.y; o.position.y += o.userData.spd.z; if (Math.abs(o.position.y) > 12) o.userData.spd.z *= -1; });
+    r.render(s, cam);
+  })();
+})();
+
+// ══════════════════════════════
+// SCENE 1: GARAGE DOOR SYSTEM
+// ══════════════════════════════
+let doorProgress = 0, doorTarget = 0, showJArm = true;
+(function() {
+  const c = document.getElementById('doorCanvas'), r = makeRenderer(c);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  cam.position.set(7, 4, 9); cam.lookAt(0, 2.2, -2);
+  addLights(s); orbitControls(cam, c, new THREE.Vector3(0, 2.2, -2));
+  s.fog = new THREE.Fog(0x141418, 25, 45);
+  // Floor
+  s.add(mk(new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.85 })), { rotation: { x: -Math.PI / 2 } }));
+  
+  // Door geometry constants
+  const pCount = 5, pH = 0.9, dW = 4.8;
+  const doorHeight = pCount * pH; // 4.5
+  const curveR = 1.0; // Track curve radius
+  const horizTrackY = doorHeight - curveR; // 3.5 — where panels go flat
+  
+  // Frame (surrounds the opening)
+  const frameH = doorHeight + 0.15;
+  [[-2.5, frameH / 2, 0], [2.5, frameH / 2, 0]].forEach(p => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.15, frameH, 0.15), M.frame); m.position.set(...p); s.add(m); });
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.15, 0.15), M.frame), { position: new THREE.Vector3(0, doorHeight + 0.08, 0) }));
+  
+  // Horizontal tracks (just above the curve exit height, inside garage)
+  [-2.4, 2.4].forEach(x => { const t = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 8), M.frame); t.position.set(x, horizTrackY + 0.15, -4.5); s.add(t); });
+  // Track brackets (hanging from above)
+  [-2.4, 2.4].forEach(x => { for (let z = -1.5; z > -8; z -= 2) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.04), M.frame); b.position.set(x, horizTrackY + 0.5, z); s.add(b); } });
+  // Vertical track sections on each side of the opening
+  [-2.4, 2.4].forEach(x => { const vt = new THREE.Mesh(new THREE.BoxGeometry(0.08, doorHeight, 0.1), M.frame); vt.position.set(x, doorHeight / 2, -0.12); s.add(vt); });
+
+  // Torsion spring (above the header, on interior side)
+  const springY = doorHeight + 0.5;
+  const spPts = [];
+  for (let t = 0; t < Math.PI * 20; t += 0.15) spPts.push(new THREE.Vector3(t * 0.04 - 1.2, 0, Math.sin(t) * 0.08));
+  const spMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spPts), 100, 0.015, 6, false), M.red.clone());
+  spMesh.position.set(0, springY, -0.15); s.add(spMesh);
+  // Shaft
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 5.5, 8), M.darkSteel);
+  shaft.rotation.z = Math.PI / 2; shaft.position.set(0, springY, -0.15); s.add(shaft);
+  // Cable drums
+  [-2.5, 2.5].forEach(x => { const d = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.18, 12), M.steel); d.rotation.z = Math.PI / 2; d.position.set(x, springY, -0.15); s.add(d); });
+
+  // Door panels with rollers on INSIDE (negative Z)
+  const panels = [], rollers = [];
+  for (let i = 0; i < pCount; i++) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(dW, pH, 0.1), M.panel));
+    // Panel section line (decorative)
+    g.add(mk(new THREE.Mesh(new THREE.BoxGeometry(dW + 0.01, 0.02, 0.12), new THREE.MeshStandardMaterial({ color: 0xbbbbbb, roughness: 0.8 })), { position: new THREE.Vector3(0, pH / 2 - 0.02, 0) }));
+    // Rollers + hinges on INTERIOR side (negative Z)
+    const pRollers = [];
+    [-2.2, 2.2].forEach(sx => {
+      // Hinge plate
+      const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.03), M.darkSteel);
+      hinge.position.set(sx, pH / 2, -0.08);
+      g.add(hinge);
+      // Roller on hinge
+      const roller = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.05, 10), M.steel);
+      roller.rotation.x = Math.PI / 2; roller.position.set(sx, pH / 2, -0.14);
+      g.add(roller);
+      // Axle through roller
+      g.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6), M.darkSteel), { rotation: { x: Math.PI / 2 }, position: new THREE.Vector3(sx, pH / 2, -0.14) }));
+      pRollers.push(roller);
+    });
+    rollers.push(pRollers);
+    // Add strut reinforcement bars to interior of top 3 panels
+    if (i >= 2) {
+      const strutBar = new THREE.Mesh(new THREE.BoxGeometry(dW - 0.3, 0.06, 0.05), M.steel);
+      strutBar.position.set(0, 0, -0.1);
+      g.add(strutBar);
+    }
+    g.position.set(0, pH / 2 + i * pH, 0);
+    s.add(g); panels.push(g);
+  }
+
+  // Bottom astragal seal — thin rubber strip hanging below bottom panel edge, exterior side
+  const seal = new THREE.Mesh(new THREE.BoxGeometry(dW - 0.1, 0.12, 0.02), M.rubber);
+  seal.position.set(0, -pH / 2 - 0.04, 0.06); // Hangs below bottom edge, on outside face
+  panels[0].add(seal);
+  
+  // Strut bar — horizontal reinforcement on interior of bottom panel
+  const strut = new THREE.Mesh(new THREE.BoxGeometry(dW - 0.3, 0.08, 0.06), M.steel);
+  strut.position.set(0, 0, -0.1); // Centered on interior face
+  panels[0].add(strut);
+  
+  // Bottom brackets / fixtures on INTERIOR side (where lift cables attach)
+  [-2.2, 2.2].forEach(x => { const br = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 0.12), M.darkSteel); br.position.set(x, -pH / 2 + 0.1, -0.12); panels[0].add(br); });
+
+  // Cables (from interior drums to interior bottom brackets)
+  const cables = [];
+  [-2.3, 2.3].forEach(x => {
+    const cGeo = new THREE.BufferGeometry();
+    const cMat = new THREE.LineBasicMaterial({ color: 0xaaaaaa });
+    const line = new THREE.Line(cGeo, cMat);
+    s.add(line);
+    cables.push({ line, x });
+  });
+
+  // Motor unit (on ceiling, INSIDE the garage)
+  const railY = horizTrackY + 0.3; // Rail slightly above horizontal track
+  const motorBox = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 1.2), M.darkSteel);
+  motorBox.position.set(0, railY + 0.2, -8); s.add(motorBox);
+  s.add(mk(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), M.glow), { position: new THREE.Vector3(0, railY, -8) }));
+  // Rail from motor to door
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 7.5), M.steel), { position: new THREE.Vector3(0, railY, -4.5) }));
+
+  // Trolley (rides on rail)
+  const trolley = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.25), M.orange);
+  trolley.position.set(0, railY, -0.5); s.add(trolley);
+
+  // J-Arm (connects trolley to top of door, curves toward interior)
+  const armGroup = new THREE.Group();
+  const armPts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -0.3, 0.1), new THREE.Vector3(0, -0.8, 0.2)];
+  const armCurve = new THREE.CatmullRomCurve3(armPts);
+  const arm = new THREE.Mesh(new THREE.TubeGeometry(armCurve, 12, 0.03, 6, false), M.steel);
+  armGroup.add(arm);
+  armGroup.position.set(0, railY, -0.5); s.add(armGroup);
+
+  function updateDoor(t) {
+    // Model the door as a chain of connected panels sliding along a path:
+    // Segment 1: Vertical (y = 0 to doorHeight)
+    // Segment 2: 90° curve (radius R at top corner)
+    // Segment 3: Horizontal (extending back into garage along ceiling)
+    
+    const doorHeight = pCount * pH; // Total vertical height
+    const R = curveR; // Track curve radius (shared constant)
+    const curveLen = R * Math.PI / 2; // Arc length of 90° curve
+    const horizLen = 8; // Max horizontal track length
+    const totalPath = doorHeight + curveLen + horizLen;
+    
+    // How far the chain has advanced along the path
+    // At t=1, the bottom panel should be at the top of the vertical section
+    const advance = t * (doorHeight + curveLen);
+    
+    for (let i = 0; i < pCount; i++) {
+      const p = panels[i];
+      // Distance of this panel's CENTER along the path from the bottom
+      const panelCenter = i * pH + pH / 2 + advance;
+      
+      if (panelCenter < doorHeight) {
+        // Panel is in the VERTICAL segment
+        p.position.set(0, panelCenter, 0);
+        p.rotation.x = 0;
+      } else if (panelCenter < doorHeight + curveLen) {
+        // Panel is in the CURVE segment
+        const curveProgress = (panelCenter - doorHeight) / curveLen; // 0 to 1 through curve
+        const angle = curveProgress * Math.PI / 2; // 0 to 90°
+        // Arc centered at (0, doorHeight, -R)
+        p.position.set(0, doorHeight + R * Math.cos(angle) - R, -(R * Math.sin(angle)));
+        p.rotation.x = -angle;
+      } else {
+        // Panel is in the HORIZONTAL segment (on ceiling track)
+        const horizDist = panelCenter - doorHeight - curveLen;
+        p.position.set(0, doorHeight - R, -(R + horizDist));
+        p.rotation.x = -Math.PI / 2;
+      }
+      
+      // Keep panels from going below ground
+      if (panelCenter - pH / 2 < 0) {
+        p.position.set(0, pH / 2, 0);
+        p.rotation.x = 0;
+      }
+      
+      // Spin rollers when moving
+      rollers[i].forEach(rl => { if (Math.abs(doorProgress - doorTarget) > 0.005) rl.rotation.y += 0.15 * Math.sign(doorTarget - doorProgress); });
+    }
+    
+    // Trolley follows the top panel
+    const topPanel = panels[pCount - 1];
+    const trolleyZ = Math.min(-0.3, topPanel.position.z - 0.5);
+    trolley.position.z = trolleyZ;
+    
+    // Update arm
+    if (showJArm) {
+      armGroup.visible = true;
+      armGroup.position.z = trolleyZ;
+      armGroup.position.y = railY;
+      const doorTopY = topPanel.position.y + pH / 2 * Math.cos(topPanel.rotation.x);
+      const doorTopZ = topPanel.position.z - pH / 2 * Math.sin(-topPanel.rotation.x);
+      armGroup.lookAt(0, doorTopY, doorTopZ);
+    } else { armGroup.visible = false; }
+    
+    // Cables (from interior drums to bottom panel brackets)
+    cables.forEach(({ line, x }) => {
+      const drumPos = new THREE.Vector3(x, springY, -0.15);
+      const bracketY = panels[0].position.y - pH / 2 * Math.cos(panels[0].rotation.x) + 0.1;
+      const bracketZ = panels[0].position.z + pH / 2 * Math.sin(-panels[0].rotation.x) - 0.1;
+      line.geometry.setFromPoints([drumPos, new THREE.Vector3(x * 0.95, bracketY, bracketZ)]);
+    });
+    
+    // Readouts
+    const bottomAngle = Math.abs(panels[0].rotation.x) * 180 / Math.PI;
+    document.getElementById('doorPosVal').innerHTML = Math.round(t * 100) + '<span class="readout-unit">%</span>';
+    document.getElementById('panelAngleVal').innerHTML = Math.round(bottomAngle) + '<span class="readout-unit">°</span>';
+    document.getElementById('cableTensionVal').innerHTML = Math.round(42 + t * 30) + '<span class="readout-unit">lbs</span>';
+    document.getElementById('springTorqueVal').innerHTML = Math.round((1 - t) * 85) + '<span class="readout-unit">ft·lb</span>';
+    document.getElementById('rollerSpeedVal').innerHTML = (Math.abs(doorProgress - doorTarget) > 0.005 ? '120' : '0') + '<span class="readout-unit">rpm</span>';
+  }
+
+  scenes.doorCanvas = { active: true };
+  (function anim() {
+    requestAnimationFrame(anim);
+    if (!scenes.doorCanvas?.active) return;
+    const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
+    if (Math.abs(doorProgress - doorTarget) > 0.002) doorProgress += (doorTarget - doorProgress) * 0.018;
+    updateDoor(doorProgress);
+    spMesh.rotation.x += (doorTarget - doorProgress) * 0.5;
+    r.render(s, cam);
+  })();
+})();
+function toggleDoor() { doorTarget = doorTarget < 0.5 ? 1 : 0; playSound('motor'); }
+function toggleArm() { showJArm = !showJArm; document.getElementById('armToggle').textContent = showJArm ? 'J-Arm' : 'No Arm'; }
+
+// ══════════════════════════════
+// SCENE 2: TORSION SPRING
+// ══════════════════════════════
+let springTurns = 0, springDir = 0;
+(function() {
+  const c = document.getElementById('springCanvas'), r = makeRenderer(c);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  cam.position.set(4, 2, 6); cam.lookAt(0, 0, 0);
+  addLights(s); orbitControls(cam, c);
+  addGrid(s, 3, -1.0);
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 6, 12), M.darkSteel), { rotation: { z: Math.PI / 2 } }));
+  let spMesh = null;
+  const spMat = new THREE.MeshStandardMaterial({ color: 0xff5555, metalness: 0.3, roughness: 0.3, emissive: 0xff2222, emissiveIntensity: 0.08 });
+  function buildSpring(w) {
+    if (spMesh) s.remove(spMesh);
+    const pts = [], coils = 30, len = 3 * Math.max(0.7, 1 - w * 0.012);
+    for (let t = 0; t < Math.PI * 2 * coils; t += 0.15) {
+      const p = t / (Math.PI * 2 * coils);
+      pts.push(new THREE.Vector3((p - 0.5) * len, Math.cos(t + w * 0.5) * 0.35, Math.sin(t + w * 0.5) * 0.35));
+    }
+    spMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 180, 0.04, 6, false), spMat);
+    s.add(spMesh);
+    const stress = w / 7.5;
+    spMat.color.setRGB(Math.min(1, 0.7 + stress * 0.3), Math.max(0.15, 0.5 - stress * 0.45), 0.12);
+    spMat.emissiveIntensity = 0.05 + stress * 0.15;
+  }
+  // End plates + drums + winding cone
+  [-1.6, 1.6].forEach(x => s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.08, 16), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(x, 0, 0) })));
+  [-2.5, 2.5].forEach(x => s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.2, 16), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(x, 0, 0) })));
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 0.15, 16), M.orange), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(1.55, 0, 0) }));
+  buildSpring(0);
+  scenes.springCanvas = { active: false };
+  (function anim() {
+    requestAnimationFrame(anim);
+    if (!scenes.springCanvas?.active) return;
+    const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
+    if (springDir !== 0) {
+      springTurns = Math.max(0, Math.min(7.5, springTurns + springDir * 0.025));
+      if (springTurns <= 0 || springTurns >= 7.5) springDir = 0;
+      buildSpring(springTurns); updateSpringReadouts();
+    }
+    r.render(s, cam);
+  })();
+})();
+function windSpring() { springDir = 1; playSound('click'); }
+function unwindSpring() { springDir = -1; playSound('click'); }
+function updateSpringReadouts() {
+  const wt = parseInt(document.getElementById('weightSlider').value);
+  document.getElementById('turnsVal').innerHTML = springTurns.toFixed(1) + '<span class="readout-unit"> turns</span>';
+  document.getElementById('energyVal').innerHTML = Math.round((springTurns / 7.5) * wt * 0.7) + '<span class="readout-unit"> ft·lb</span>';
+  document.getElementById('torqueVal').innerHTML = Math.round((springTurns / 7.5) * wt * 1.3) + '<span class="readout-unit"> in·lb</span>';
+  document.getElementById('stressVal').innerHTML = Math.round((springTurns / 7.5) * 145000).toLocaleString() + '<span class="readout-unit"> psi</span>';
+}
+
+// ══════════════════════════════
+// SPRING CALCULATOR
+// ══════════════════════════════
+function updateCalc() {
+  const d = parseInt(document.getElementById('wireSlider').value) / 1000;
+  const ID = parseInt(document.getElementById('coilIDSlider').value) / 100;
+  const N = parseInt(document.getElementById('coilCountSlider').value);
+  const W = parseInt(document.getElementById('weightSlider').value);
+  document.getElementById('wireDisplay').textContent = d.toFixed(3);
+  document.getElementById('coilIDDisplay').textContent = ID.toFixed(2);
+  document.getElementById('coilCountDisplay').textContent = N;
+  document.getElementById('weightDisplay').textContent = W;
+  const G = 11500000; // Shear modulus psi
+  const D = ID + d; // Mean coil diameter
+  const IPPT = (d * d * d * d * G) / (10.8 * D * N);
+  const drumRadius = 2; // inches
+  const turnsNeeded = (W * drumRadius) / IPPT;
+  const maxTorque = IPPT * turnsNeeded;
+  const energy = (maxTorque * turnsNeeded * Math.PI) / (12 * 2); // ft-lbs
+  const C_ratio = D / d;
+  const K = (4 * C_ratio - 1) / (4 * C_ratio - 4) + 0.615 / C_ratio; // Wahl factor
+  const stress = (K * 32 * maxTorque) / (Math.PI * d * d * d);
+  const UTS = 230000; // Approximate for oil-tempered wire
+  const stressPct = stress / UTS;
+  const cycleLife = stressPct > 0.5 ? Math.round(10000 / (stressPct * 2)) : stressPct > 0.35 ? 25000 : 50000;
+  const springLength = N * d + 1;
+  document.getElementById('calcIPPT').textContent = IPPT.toFixed(2) + ' in·lb';
+  document.getElementById('calcTurns').textContent = turnsNeeded.toFixed(1);
+  document.getElementById('calcTorque').textContent = maxTorque.toFixed(0) + ' in·lb';
+  document.getElementById('calcEnergy').textContent = energy.toFixed(0) + ' ft·lb';
+  document.getElementById('calcStress').textContent = Math.round(stress).toLocaleString() + ' psi (' + (stressPct * 100).toFixed(0) + '%)';
+  document.getElementById('calcLife').textContent = cycleLife.toLocaleString() + ' cycles';
+  document.getElementById('calcLength').textContent = springLength.toFixed(1) + '"';
+  const ok = stressPct < 0.6 && turnsNeeded < 40;
+  document.getElementById('calcStatus').textContent = ok ? '✓ Good Match' : '⚠ Check Sizing';
+  document.getElementById('calcStatus').style.color = ok ? 'var(--success)' : 'var(--danger)';
+  drawForceBalance();
+  updateSpringReadouts();
+}
+
+// ══════════════════════════════
+// FORCE BALANCE CHART
+// ══════════════════════════════
+function drawForceBalance() {
+  const canvas = document.getElementById('forceChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width - 48;
+  canvas.height = 300;
+  const W = canvas.width, H = canvas.height;
+  const pad = { t: 20, r: 20, b: 40, l: 55 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const doorWeight = parseInt(document.getElementById('weightSlider').value);
+  const tensionAdj = parseInt(document.getElementById('tensionSlider').value);
+  document.getElementById('tensionDisplay').textContent = tensionAdj;
+  ctx.clearRect(0, 0, W, H);
+  // Grid
+  ctx.strokeStyle = '#2a2a30'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.t + (i / 5) * ph;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  }
+  // Axis labels
+  ctx.fillStyle = '#6a6862'; ctx.font = '10px "JetBrains Mono"';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const v = Math.round(doorWeight * 1.2 * (1 - i / 5));
+    ctx.fillText(v + ' lb', pad.l - 8, pad.t + (i / 5) * ph + 3);
+  }
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 10; i++) ctx.fillText((i * 10) + '%', pad.l + (i / 10) * pw, H - pad.b + 20);
+  ctx.fillText('Door Position (% Open)', pad.l + pw / 2, H - 5);
+
+  const maxF = doorWeight * 1.2;
+  const pts = 100;
+  // Door weight curve (non-linear - heavier when vertical, lighter as it goes horizontal)
+  ctx.strokeStyle = '#ff6b2b'; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= pts; i++) {
+    const t = i / pts;
+    const effectiveWeight = doorWeight * (1 - 0.4 * t - 0.15 * Math.sin(t * Math.PI));
+    const x = pad.l + t * pw, y = pad.t + (1 - effectiveWeight / maxF) * ph;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Spring force curve
+  ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 2.5; ctx.beginPath();
+  const springForces = [];
+  for (let i = 0; i <= pts; i++) {
+    const t = i / pts;
+    const springForce = doorWeight * ((1 - t * 0.85) + tensionAdj * 0.02) * (0.95 + 0.1 * Math.sin(t * Math.PI * 0.8));
+    springForces.push(springForce);
+    const x = pad.l + t * pw, y = pad.t + (1 - springForce / maxF) * ph;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Balance zone highlight
+  ctx.fillStyle = 'rgba(34, 197, 94, 0.08)';
+  for (let i = 0; i <= pts; i++) {
+    const t = i / pts;
+    const ew = doorWeight * (1 - 0.4 * t - 0.15 * Math.sin(t * Math.PI));
+    const sf = springForces[i];
+    if (Math.abs(ew - sf) < doorWeight * 0.08) {
+      const x = pad.l + t * pw;
+      ctx.fillRect(x - 1, pad.t, 3, ph);
+    }
+  }
+}
+
+// ══════════════════════════════
+// SCENE 3: EXTENSION SPRINGS
+// ══════════════════════════════
+let extDoorT = 0, extDoorTarget = 0, showSafetyCable = true;
+(function() {
+  const c = document.getElementById('extSpringCanvas'), r = makeRenderer(c);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  cam.position.set(5, 3, 7); cam.lookAt(0, 2, 0);
+  addLights(s); orbitControls(cam, c, new THREE.Vector3(0, 2.2, -1));
+  // Floor
+  s.add(mk(new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.85 })), { rotation: { x: -Math.PI / 2 } }));
+  // Frame
+  [[-2.5, 2.5, 0], [2.5, 2.5, 0]].forEach(p => s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.12, 5, 0.12), M.frame), { position: new THREE.Vector3(...p) })));
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.12, 0.12), M.frame), { position: new THREE.Vector3(0, 5.02, 0) }));
+  // Horizontal track
+  [-2.4, 2.4].forEach(x => s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 7), M.frame), { position: new THREE.Vector3(x, 5, -3.5) })));
+  // Door panels
+  const extPanels = [];
+  for (let i = 0; i < 4; i++) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.1, 0.08), M.panel);
+    p.position.set(0, 0.55 + i * 1.1, 0);
+    s.add(p); extPanels.push(p);
+  }
+  // Extension springs (one each side)
+  const extSprings = [];
+  [-2.6, 2.6].forEach(x => {
+    const sg = { meshes: [], x, cable: null };
+    extSprings.push(sg);
+    sg.group = new THREE.Group();
+    s.add(sg.group);
+  });
+  // Safety cable line
+  const safetyCables = [];
+  [-2.6, 2.6].forEach(x => {
+    const geo = new THREE.BufferGeometry();
+    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeee00, linewidth: 2 }));
+    s.add(line);
+    safetyCables.push(line);
+  });
+  // Pulleys
+  [-2.4, 2.4].forEach(x => {
+    s.add(mk(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 6, 12), M.steel), { position: new THREE.Vector3(x, 5, -0.5) }));
+  });
+
+  function buildExtSprings(stretch) {
+    extSprings.forEach(sg => {
+      sg.group.children.forEach(c => sg.group.remove(c));
+      sg.group.children = [];
+      const baseLen = 2;
+      const curLen = baseLen + stretch * 2;
+      const coils = 25;
+      const pts = [];
+      for (let t = 0; t < Math.PI * 2 * coils; t += 0.2) {
+        const p = t / (Math.PI * 2 * coils);
+        pts.push(new THREE.Vector3(0, 5 - p * curLen, sg.x > 0 ? -0.3 : -0.3));
+      }
+      if (pts.length > 1) {
+        const curve = new THREE.CatmullRomCurve3(pts);
+        const springMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.025, 6, false), M.red.clone());
+        sg.group.add(springMesh);
+        const stress = stretch / 3;
+        springMesh.material.color.setRGB(Math.min(1, 0.75 + stress * 0.25), Math.max(0.15, 0.45 - stress * 0.35), 0.12);
+        springMesh.material.emissiveIntensity = 0.05 + stress * 0.15;
+      }
+      sg.group.position.x = sg.x;
+    });
+    // Safety cables
+    safetyCables.forEach((line, i) => {
+      line.visible = showSafetyCable;
+      const x = i === 0 ? -2.6 : 2.6;
+      line.geometry.setFromPoints([
+        new THREE.Vector3(x, 5.1, -0.3),
+        new THREE.Vector3(x, 5 - 2 - stretch * 2, -0.3),
+        new THREE.Vector3(x, 2.5, -0.3)
+      ]);
+    });
+  }
+
+  scenes.extSpringCanvas = { active: false };
+  (function anim() {
+    requestAnimationFrame(anim);
+    if (!scenes.extSpringCanvas?.active) return;
+    const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
+    if (Math.abs(extDoorT - extDoorTarget) > 0.002) extDoorT += (extDoorTarget - extDoorT) * 0.015;
+    // Animate panels
+    for (let i = 0; i < 4; i++) {
+      const p = extPanels[i];
+      const pt = Math.max(0, Math.min(1, (extDoorT * 4 - (3 - i))));
+      if (pt <= 0) { p.position.set(0, 0.55 + i * 1.1, 0); p.rotation.x = 0; }
+      else if (pt < 0.5) { const a = pt * 2, angle = a * Math.PI / 2; p.position.set(0, 4.5 - 0.55 + Math.cos(angle) - 1, -Math.sin(angle)); p.rotation.x = -angle; }
+      else { const slide = (pt - 0.5) * 2; p.position.set(0, 4.5 - 0.55, -1 - slide * 2.5); p.rotation.x = -Math.PI / 2; }
+    }
+    buildExtSprings(extDoorT * 2.5);
+    // Readouts
+    const stretch = extDoorT * 24;
+    const k = 6.5;
+    const force = k * stretch;
+    const doorWt = 150;
+    const effWt = doorWt * (1 - 0.4 * extDoorT);
+    document.getElementById('extStretchVal').innerHTML = stretch.toFixed(1) + '<span class="readout-unit"> in</span>';
+    document.getElementById('extForceVal').innerHTML = Math.round(force) + '<span class="readout-unit"> lbs</span>';
+    document.getElementById('extWeightVal').innerHTML = Math.round(effWt) + '<span class="readout-unit"> lbs</span>';
+    const imbal = Math.abs(force - effWt);
+    document.getElementById('extImbalVal').innerHTML = Math.round(imbal) + '<span class="readout-unit"> lbs</span>';
+    document.getElementById('extImbalVal').style.color = imbal > 20 ? 'var(--danger)' : 'var(--success)';
+    r.render(s, cam);
+  })();
+})();
+function toggleExtDoor() { extDoorTarget = extDoorTarget < 0.5 ? 1 : 0; }
+function toggleSafetyCable() { showSafetyCable = !showSafetyCable; }
+
+// ══════════════════════════════
+// SCENE 4: DRIVE TYPES (with Jackshaft)
+// ══════════════════════════════
+const driveScenes = {};
+function addGrid(scene, size, y) {
+  // Subtle ground grid for spatial reference
+  const gridMat = new THREE.LineBasicMaterial({ color: 0x3a3a44, transparent: true, opacity: 0.3 });
+  for (let i = -size; i <= size; i += 1) {
+    const pts1 = [new THREE.Vector3(i, y, -size), new THREE.Vector3(i, y, size)];
+    const pts2 = [new THREE.Vector3(-size, y, i), new THREE.Vector3(size, y, i)];
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts1), gridMat));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts2), gridMat));
+  }
+}
+function createDrive(canvasId, type) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const r = makeRenderer(c), s = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  cam.position.set(3, 2, 5); cam.lookAt(0, 0, 0);
+  addLights(s); orbitControls(cam, c);
+  addGrid(s, 4, -0.5);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(8, 0.12, 0.12), M.darkSteel);
+  s.add(rail);
+  let trolley, parts = {};
+  const housing = new THREE.Mesh(new THREE.BoxGeometry(1, 0.55, 0.75), M.darkSteel);
+  housing.position.x = -3.5; s.add(housing);
+
+  if (type === 'chain') {
+    for (let i = -3; i < 3.5; i += 0.14) s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.035, 0.055), M.steel), { position: new THREE.Vector3(i, 0.09, 0) }));
+    parts.sprocket = mk(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.04, 8, 12), M.orange), { position: new THREE.Vector3(-3.5, 0.09, 0) });
+    s.add(parts.sprocket);
+    trolley = mk(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.28), M.orange), { position: new THREE.Vector3(1, 0.18, 0) });
+    s.add(trolley);
+  } else if (type === 'belt') {
+    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.025, 0.22), M.rubber), { position: new THREE.Vector3(-0.25, 0.09, 0) }));
+    for (let i = 0; i < 3; i++) s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.004, 0.004), new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.4, roughness: 0.3 })), { position: new THREE.Vector3(-0.25, 0.09, (i - 1) * 0.07) }));
+    parts.sprocket = mk(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), M.steel), { position: new THREE.Vector3(-3.5, 0.09, 0) });
+    s.add(parts.sprocket);
+    trolley = mk(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.28), M.orange), { position: new THREE.Vector3(1, 0.18, 0) });
+    s.add(trolley);
+  } else if (type === 'screw') {
+    const rodPts = [];
+    for (let t = 0; t < Math.PI * 80; t += 0.4) rodPts.push(new THREE.Vector3((t / (Math.PI * 80)) * 7 - 3.5, 0.055 * Math.cos(t), 0.055 * Math.sin(t)));
+    const rod = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rodPts), 200, 0.02, 5, false), M.steel);
+    s.add(rod); parts.rod = rod;
+    s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 7, 8), M.darkSteel), { rotation: { z: Math.PI / 2 } }));
+    trolley = mk(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.32, 0.32), M.orange), { position: new THREE.Vector3(1, 0.12, 0) });
+    s.add(trolley);
+  } else if (type === 'direct') {
+    for (let i = -3.5; i < 3.5; i += 0.11) s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.025, 0.045), M.darkSteel), { position: new THREE.Vector3(i, -0.04, 0) }));
+    trolley = new THREE.Group();
+    trolley.add(new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.45, 0.55), M.orange));
+    parts.gear = mk(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 6, 10), M.steel), { position: new THREE.Vector3(0, -0.13, 0) });
+    trolley.add(parts.gear);
+    trolley.position.set(0, 0.28, 0); s.add(trolley);
+    housing.visible = false;
+  } else if (type === 'jackshaft') {
+    housing.position.set(-3, 0, 0); housing.scale.set(0.8, 1.2, 1);
+    // Torsion shaft
+    s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 6, 8), M.steel), { rotation: { z: Math.PI / 2 } }));
+    // Spring on shaft
+    const jSpPts = [];
+    for (let t = 0; t < Math.PI * 15; t += 0.2) jSpPts.push(new THREE.Vector3(t * 0.06 - 1, Math.cos(t) * 0.2, Math.sin(t) * 0.2));
+    s.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(jSpPts), 60, 0.02, 6, false), M.red));
+    // Drums at ends
+    [2.5, -2.5].forEach(x => s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.15, 10), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(x, 0, 0) })));
+    // Drive gear on motor
+    parts.gear = mk(new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.03, 6, 12), M.orange), { position: new THREE.Vector3(-2.6, 0, 0) });
+    s.add(parts.gear);
+    trolley = null; // No trolley in jackshaft
+    rail.visible = false;
+  }
+  parts.trolley = trolley;
+  const data = { r, s, cam, c, parts, time: 0, active: false };
+  driveScenes[type] = data;
+  scenes[canvasId] = data;
+}
+createDrive('chainCanvas', 'chain');
+
+function animDrives() {
+  requestAnimationFrame(animDrives);
+  for (const type in driveScenes) {
+    const d = driveScenes[type];
+    if (!d.c.closest('.tab-content.active') || !d.active) continue;
+    d.time += 0.016;
+    const { w, h } = fitRenderer(d.r, d.c); d.cam.aspect = w / h; d.cam.updateProjectionMatrix();
+    if (d.parts.trolley) d.parts.trolley.position.x = Math.sin(d.time * 0.5) * 2.5;
+    if (d.parts.sprocket) d.parts.sprocket.rotation.z += 0.03;
+    if (d.parts.gear) d.parts.gear.rotation.z += 0.04;
+    if (d.parts.rod) d.parts.rod.rotation.x += 0.02;
+    d.r.render(d.s, d.cam);
+  }
+}
+animDrives();
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  // Deactivate all drive scenes, activate the selected one
+  for (const key in driveScenes) driveScenes[key].active = false;
+  if (!driveScenes[name]) createDrive(name + 'Canvas', name);
+  if (driveScenes[name]) driveScenes[name].active = true;
+}
+
+// ══════════════════════════════
+// SCENE 5: MOTOR INTERNALS
+// ══════════════════════════════
+let motorExploded = false, motorRunning = false, showCurrent = false, motorExplodeT = 0;
+(function() {
+  const c = document.getElementById('motorCanvas'), r = makeRenderer(c);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  cam.position.set(5, 3, 7); cam.lookAt(0, 0, 0);
+  addLights(s); orbitControls(cam, c);
+  // Extra point light at motor center for internal illumination
+  const motorPt = new THREE.PointLight(0xffeedd, 0.8, 10);
+  motorPt.position.set(0, 0.3, 0); s.add(motorPt);
+  addGrid(s, 3, -1.5);
+
+  const casingMat = new THREE.MeshStandardMaterial({ color: 0x8888a0, metalness: 0.3, roughness: 0.4, transparent: true, opacity: 0.5, emissive: 0x444455, emissiveIntensity: 0.05 });
+  const casingTop = mk(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.8, 20, 1, false, 0, Math.PI), casingMat.clone()), { position: new THREE.Vector3(0, 0.4, 0) });
+  casingTop.userData.eo = new THREE.Vector3(0, 2.2, 0); s.add(casingTop);
+  const casingBot = mk(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.8, 20, 1, false, Math.PI, Math.PI), casingMat.clone()), { position: new THREE.Vector3(0, 0.4, 0) });
+  casingBot.userData.eo = new THREE.Vector3(0, -1.8, 0); s.add(casingBot);
+
+  // Stator
+  const stator = new THREE.Group();
+  const currentMeshes = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const coil = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 6, 8), M.copper);
+    coil.position.set(Math.cos(a) * 0.65, 0.4, Math.sin(a) * 0.65);
+    coil.rotation.x = Math.PI / 2; coil.lookAt(0, 0.4, 0);
+    stator.add(coil);
+    // Current flow indicators
+    const flowMat = new THREE.MeshStandardMaterial({ color: 0x44ff44, emissive: 0x44ff44, emissiveIntensity: 0.8, transparent: true, opacity: 0 });
+    const flow = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.055, 6, 8), flowMat);
+    flow.position.copy(coil.position); flow.rotation.copy(coil.rotation); flow.lookAt(0, 0.4, 0);
+    stator.add(flow);
+    currentMeshes.push(flowMat);
+  }
+  stator.userData.eo = new THREE.Vector3(2.2, 0, 0); s.add(stator);
+
+  // Rotor
+  const rotor = new THREE.Group();
+  rotor.add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.6, 16), M.darkSteel));
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; rotor.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.65, 4), M.steel), { position: new THREE.Vector3(Math.cos(a) * 0.28, 0, Math.sin(a) * 0.28) })); }
+  rotor.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5, 8), M.steel));
+  rotor.position.y = 0.4; rotor.userData.eo = new THREE.Vector3(0, 0, 0); s.add(rotor);
+
+  // Worm gear
+  const wormG = new THREE.Group();
+  const wPts = []; for (let t = 0; t < Math.PI * 8; t += 0.2) wPts.push(new THREE.Vector3(Math.cos(t) * 0.12, t * 0.025 - 0.5, Math.sin(t) * 0.12));
+  wormG.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wPts), 40, 0.02, 5, false), M.steel));
+  const wheel = mk(new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.08, 8, 24), M.orange), { rotation: { x: Math.PI / 2 }, position: new THREE.Vector3(0.55, 0, 0) });
+  wormG.add(wheel);
+  wormG.position.set(0, -0.8, 0); wormG.userData.eo = new THREE.Vector3(-2.5, -1.2, 0); s.add(wormG);
+
+  // Capacitor
+  const cap = mk(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.5, 8), M.blue), { position: new THREE.Vector3(1.3, 0.4, 0.5) });
+  cap.userData.eo = new THREE.Vector3(3.2, 1.2, 1.2); s.add(cap);
+
+  // PCB
+  const pcb = mk(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 0.8), M.pcb), { position: new THREE.Vector3(0, 1.3, 0) });
+  pcb.userData.eo = new THREE.Vector3(0, 3.8, 0);
+  for (let i = 0; i < 8; i++) pcb.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06 + Math.random() * 0.1, 0.03, 0.04 + Math.random() * 0.05), new THREE.MeshStandardMaterial({ color: Math.random() > 0.5 ? 0x555560 : 0xcc5544 })), { position: new THREE.Vector3((Math.random() - 0.5) * 0.8, 0.03, (Math.random() - 0.5) * 0.5) }));
+  s.add(pcb);
+
+  // Limit switch
+  const limSw = mk(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.1), M.orange), { position: new THREE.Vector3(-1.2, -0.5, 0.5) });
+  limSw.userData.eo = new THREE.Vector3(-3.2, -1.2, 2); s.add(limSw);
+
+  const explodables = [casingTop, casingBot, stator, wormG, cap, pcb, limSw];
+  explodables.forEach(o => { if (!o.userData.bp) o.userData.bp = o.position.clone(); });
+
+  scenes.motorCanvas = { active: false };
+  let mTime = 0;
+  (function anim() {
+    requestAnimationFrame(anim);
+    if (!scenes.motorCanvas?.active) return;
+    mTime += 0.016;
+    const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
+    const tt = motorExploded ? 1 : 0;
+    motorExplodeT += (tt - motorExplodeT) * 0.04;
+    explodables.forEach(o => { if (o.userData.eo && o.userData.bp) o.position.lerpVectors(o.userData.bp, o.userData.bp.clone().add(o.userData.eo), motorExplodeT); });
+    if (motorRunning) { rotor.rotation.y += 0.12; wheel.rotation.z += 0.12 / 40; }
+    // Current flow animation
+    currentMeshes.forEach((mat, i) => {
+      if (showCurrent && motorRunning) {
+        const phase = Math.sin(mTime * 8 + i * Math.PI / 3);
+        mat.opacity = Math.max(0, phase) * 0.6;
+        mat.emissiveIntensity = Math.max(0, phase) * 1.2;
+      } else { mat.opacity = 0; }
+    });
+    r.render(s, cam);
+  })();
+})();
+function toggleMotorExplode() { motorExploded = !motorExploded; }
+function toggleMotorRun() { motorRunning = !motorRunning; playSound('motor'); }
+function toggleCurrentFlow() { showCurrent = !showCurrent; }
+
+// Worm Gear Ratio
+function updateGearRatio() {
+  const ratio = parseInt(document.getElementById('ratioSlider').value);
+  document.getElementById('ratioDisplay').textContent = ratio;
+  const motorRPM = 1725;
+  const outRPM = (motorRPM / ratio).toFixed(1);
+  document.getElementById('motorRPMVal').innerHTML = motorRPM + '<span class="readout-unit"> rpm</span>';
+  document.getElementById('outputRPMVal').innerHTML = outRPM + '<span class="readout-unit"> rpm</span>';
+  document.getElementById('torqueMultVal').innerHTML = ratio + '<span class="readout-unit">×</span>';
+  // Self-locking when lead angle < friction angle (~6° for steel-on-bronze)
+  const selfLock = ratio >= 20;
+  document.getElementById('selfLockVal').textContent = selfLock ? 'Yes' : 'No';
+  document.getElementById('selfLockVal').style.color = selfLock ? 'var(--success)' : 'var(--danger)';
+}
+
+// ══════════════════════════════
+// SCENE 6: SMART HOME
+// ══════════════════════════════
+(function() {
+  const c = document.getElementById('smartCanvas'), r = makeRenderer(c);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  cam.position.set(0, 5, 10); cam.lookAt(0, 0, 0);
+  addLights(s); orbitControls(cam, c);
+  const hub = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 0.8), M.darkSteel); s.add(hub);
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.55, 6), M.steel), { position: new THREE.Vector3(0.4, 0.5, 0) }));
+  const rings = [];
+  for (let i = 0; i < 4; i++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1 + i * 0.8, 0.015, 8, 32), new THREE.MeshStandardMaterial({ color: 0x44eeff, transparent: true, opacity: 0.35 - i * 0.06, emissive: 0x22d3ee, emissiveIntensity: 0.5 }));
+    ring.rotation.x = Math.PI / 2; ring.position.y = 0.5; s.add(ring); rings.push(ring);
+  }
+  [{ x: -3, z: -2, c: 0xeeeeee, label: 'Phone' }, { x: 3, z: -2, c: 0x44dd77, label: 'Router' }, { x: -3, z: 2, c: 0xff7e3e, label: 'HomeKit' }, { x: 3, z: 2, c: 0xffbb44, label: 'Remote' }, { x: 0, z: -3.5, c: 0x44ddee, label: 'Cloud' }].forEach(d => {
+    const mat = new THREE.MeshStandardMaterial({ color: d.c, metalness: 0.15, roughness: 0.4, emissive: d.c, emissiveIntensity: 0.15 });
+    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.55), mat), { position: new THREE.Vector3(d.x, 0, d.z) }));
+    const lGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(d.x, 0.12, d.z), new THREE.Vector3(0, 0.25, 0)]);
+    s.add(new THREE.Line(lGeo, new THREE.LineBasicMaterial({ color: d.c, transparent: true, opacity: 0.4 })));
+  });
+  // Safety beam
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 4, 4), new THREE.MeshStandardMaterial({ color: 0x22c55e, transparent: true, opacity: 0.35, emissive: 0x22c55e, emissiveIntensity: 0.5 })), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(0, -1, 1) }));
+  scenes.smartCanvas = { active: false };
+  let t = 0;
+  (function anim() {
+    requestAnimationFrame(anim);
+    if (!scenes.smartCanvas?.active) return;
+    t += 0.016;
+    const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
+    rings.forEach((ring, i) => { const sc = 1 + Math.sin(t * 2 - i * 0.5) * 0.08; ring.scale.set(sc, sc, sc); });
+    r.render(s, cam);
+  })();
+})();
+
+// Rolling Code Animation
+let codeCounter = 42857391;
+function initRollingCode() {
+  const rc = document.getElementById('remoteCode'), oc = document.getElementById('openerCode');
+  if (!rc) return;
+  const str = codeCounter.toString().padStart(8, '0');
+  rc.innerHTML = ''; oc.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    rc.innerHTML += `<div class="code-digit">${str[i]}</div>`;
+    oc.innerHTML += `<div class="code-digit">${str[i]}</div>`;
+  }
+}
+initRollingCode();
+
+function sendRollingCode() {
+  codeCounter++;
+  const str = codeCounter.toString().padStart(8, '0');
+  const rc = document.getElementById('remoteCode'), oc = document.getElementById('openerCode');
+  // Animate remote sending new code
+  rc.querySelectorAll('.code-digit').forEach((d, i) => {
+    setTimeout(() => { d.textContent = str[i]; d.classList.add('changing'); setTimeout(() => d.classList.remove('changing'), 300); }, i * 50);
+  });
+  // Opener matches
+  setTimeout(() => {
+    oc.querySelectorAll('.code-digit').forEach((d, i) => {
+      setTimeout(() => { d.textContent = str[i]; d.classList.add('changing'); setTimeout(() => d.classList.remove('changing'), 300); }, i * 50);
+    });
+    document.getElementById('codeStatus').className = 'code-status valid';
+    document.getElementById('codeStatus').textContent = '✓ Code Matched — Door Activated';
+  }, 500);
+  playSound('click');
+}
+
+function replayAttack() {
+  const oldCode = (codeCounter - 3).toString().padStart(8, '0');
+  const rc = document.getElementById('remoteCode');
+  rc.querySelectorAll('.code-digit').forEach((d, i) => {
+    setTimeout(() => { d.textContent = oldCode[i]; d.classList.add('changing'); d.style.background = 'var(--danger)'; setTimeout(() => { d.classList.remove('changing'); d.style.background = ''; }, 300); }, i * 50);
+  });
+  setTimeout(() => {
+    document.getElementById('codeStatus').className = 'code-status invalid';
+    document.getElementById('codeStatus').textContent = '✗ Replay Rejected — Code Already Used (counter: ' + oldCode + ' < ' + codeCounter + ')';
+  }, 500);
+}
+
+// ══════════════════════════════
+// SCENE 7: LED CUTAWAY
+// ══════════════════════════════
+let ledOn = false;
+(function() {
+  const c = document.getElementById('ledCanvas'), r = makeRenderer(c);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  cam.position.set(3, 2, 4); cam.lookAt(0, 0.5, 0);
+  addLights(s); orbitControls(cam, c);
+  // Interior light for bulb
+  const bulbPtLight = new THREE.PointLight(0xffeedd, 0.5, 6);
+  bulbPtLight.position.set(0, 0.8, 0); s.add(bulbPtLight);
+  addGrid(s, 2, -0.3);
+  // Bulb glass (half cut away)
+  const bulbGeo = new THREE.SphereGeometry(0.8, 20, 20, 0, Math.PI);
+  const bulbMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, side: THREE.DoubleSide, emissive: 0xffffff, emissiveIntensity: 0.05 });
+  s.add(mk(new THREE.Mesh(bulbGeo, bulbMat), { position: new THREE.Vector3(0, 1.2, 0) }));
+  // Base/screw
+  const basePts = []; for (let t = 0; t < Math.PI * 6; t += 0.2) basePts.push(new THREE.Vector3(Math.cos(t) * 0.35, -t * 0.03, Math.sin(t) * 0.35));
+  s.add(mk(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(basePts), 30, 0.02, 6, false), M.steel), { position: new THREE.Vector3(0, 0.3, 0) }));
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.35, 0.5, 16), M.steel), { position: new THREE.Vector3(0, 0.15, 0) }));
+  // Heat sink
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.6), new THREE.MeshStandardMaterial({ color: 0xbbbbbb, metalness: 0.4, roughness: 0.35 })), { position: new THREE.Vector3(Math.cos(a) * 0.45, 0.7, Math.sin(a) * 0.45), rotation: { y: a } }));
+  }
+  // LED chips
+  const ledChips = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const chip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.08), new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffaa00, emissiveIntensity: 0 }));
+    chip.position.set(Math.cos(a) * 0.25, 1.0, Math.sin(a) * 0.25);
+    s.add(chip); ledChips.push(chip);
+  }
+  // Driver PCB (the EMI source!)
+  const driverPCB = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.04, 12), M.pcb);
+  driverPCB.position.set(0, 0.5, 0); s.add(driverPCB);
+  // Components on driver
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.08), new THREE.MeshStandardMaterial({ color: 0x444450 })), { position: new THREE.Vector3(0.1, 0.55, 0) })); // MOSFET
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 6), new THREE.MeshStandardMaterial({ color: 0x555560 })), { position: new THREE.Vector3(-0.1, 0.55, 0.05) })); // Inductor
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8), M.blue), { position: new THREE.Vector3(-0.05, 0.56, -0.1) })); // Cap
+
+  // EMI radiation rings
+  const emiRings = [];
+  for (let i = 0; i < 6; i++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5 + i * 0.4, 0.008, 6, 24), new THREE.MeshStandardMaterial({ color: 0xff4444, transparent: true, opacity: 0, emissive: 0xff4444, emissiveIntensity: 0.5 }));
+    ring.position.y = 0.5; s.add(ring); emiRings.push(ring);
+  }
+  // Label arrow to driver
+  s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 1.2, 4), new THREE.MeshStandardMaterial({ color: 0xff4444 })), { position: new THREE.Vector3(0.8, 0.5, 0.8), rotation: { z: Math.PI / 4, x: Math.PI / 4 } }));
+
+  scenes.ledCanvas = { active: false };
+  let t = 0;
+  (function anim() {
+    requestAnimationFrame(anim);
+    if (!scenes.ledCanvas?.active) return;
+    t += 0.016;
+    const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
+    ledChips.forEach(chip => { chip.material.emissiveIntensity = ledOn ? 0.8 + Math.sin(t * 100) * 0.2 : 0; });
+    emiRings.forEach((ring, i) => {
+      if (ledOn) {
+        const wave = Math.sin(t * 3 - i * 0.8);
+        ring.material.opacity = Math.max(0, wave * 0.3);
+        const sc = 1 + Math.sin(t * 2 - i * 0.5) * 0.15;
+        ring.scale.set(sc, sc, sc);
+        ring.rotation.x = Math.sin(t + i) * 0.3;
+        ring.rotation.z = Math.cos(t + i) * 0.3;
+      } else { ring.material.opacity = 0; }
+    });
+    r.render(s, cam);
+  })();
+})();
+function toggleLEDOn() { ledOn = !ledOn; }
+
+// ══════════════════════════════
+// OSCILLOSCOPE
+// ══════════════════════════════
+let scopeWatts = 0, scopeTime = 0;
+function drawScope() {
+  const canvas = document.getElementById('scopeCanvas');
+  if (!canvas || !canvas.closest('.section.visible')) { requestAnimationFrame(drawScope); return; }
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = Math.min(rect.width - 32, 900);
+  canvas.height = 200;
+  const W = canvas.width, H = canvas.height;
+  scopeTime += 0.05;
+  ctx.fillStyle = '#080c08';
+  ctx.fillRect(0, 0, W, H);
+  // Grid
+  ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 0.5;
+  for (let i = 0; i < 10; i++) { ctx.beginPath(); ctx.moveTo(i * W / 10, 0); ctx.lineTo(i * W / 10, H); ctx.stroke(); }
+  for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(0, i * H / 5); ctx.lineTo(W, i * H / 5); ctx.stroke(); }
+  // Center line
+  ctx.strokeStyle = '#2a3a2a'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
+
+  // Noise floor (LED interference)
+  const noiseAmp = Math.pow(Math.max(0, scopeWatts - 3) / 17, 1.5) * H * 0.45;
+  if (noiseAmp > 0) {
+    ctx.strokeStyle = 'rgba(255, 80, 80, 0.5)'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let x = 0; x < W; x++) {
+      const noise = (Math.random() - 0.5) * noiseAmp * 2;
+      const y = H / 2 + noise;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Clean 315MHz signal
+  const sigAmp = H * 0.3;
+  ctx.strokeStyle = '#44eeff'; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let x = 0; x < W; x++) {
+    const t = (x / W) * Math.PI * 8 + scopeTime;
+    // AM modulated signal
+    const carrier = Math.sin(t * 4) * Math.sin(t * 0.5);
+    const y = H / 2 - carrier * sigAmp;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // SNR calculation
+  const snr = Math.max(0, 24 - (scopeWatts - 3) * 2.5);
+  const snrEl = document.getElementById('scopeSNR');
+  if (snrEl) {
+    snrEl.textContent = `SNR: ${snr.toFixed(0)} dB — ${snr > 15 ? 'Signal Clear' : snr > 6 ? 'Signal Degraded' : 'Signal Lost'}`;
+    snrEl.style.color = snr > 15 ? 'var(--success)' : snr > 6 ? 'var(--warn)' : 'var(--danger)';
+  }
+  requestAnimationFrame(drawScope);
+}
+drawScope();
+
+function updateScope() {
+  scopeWatts = parseInt(document.getElementById('scopeWattSlider').value);
+  document.getElementById('scopeWattDisplay').textContent = scopeWatts;
+  // Update EMI bar
+  const bar = document.getElementById('emiBar');
+  if (bar) bar.style.width = Math.max(5, scopeWatts * 4.5) + '%';
+}
+
+// ══════════════════════════════
+// LED WATTAGE SELECTOR
+// ══════════════════════════════
+function selectBulb(el, watts) {
+  document.querySelectorAll('.bulb-demo').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const meter = document.getElementById('signalMeter');
+  const data = watts <= 5 ? ['50ft', '--success'] : watts <= 8 ? ['35ft', '--accent2'] : watts <= 12 ? ['15ft', '--accent'] : ['3ft', '--danger'];
+  meter.textContent = data[0];
+  meter.style.color = `var(${data[1]})`; meter.style.borderColor = `var(${data[1]})`;
+}
+
+// ══════════════════════════════
+// TROUBLESHOOTING FLOWCHART
+// ══════════════════════════════
+const flowData = [
+  { id: 'start', label: 'What symptom are you seeing?', type: 'start', children: ['s1', 's2', 's3', 's4', 's5'] },
+  { id: 's1', label: "Door won't open or close", type: 'decision', children: ['s1a', 's1b', 's1c'] },
+  { id: 's1a', label: 'Motor runs but door doesn\'t move', type: 'action', children: ['s1a1'] },
+  { id: 's1a1', label: '→ Check manual release cord (red rope). Re-engage trolley to carriage. If stripped gear, replace gear/sprocket assembly.', type: 'solution' },
+  { id: 's1b', label: 'No response at all (no motor sound)', type: 'action', children: ['s1b1'] },
+  { id: 's1b1', label: '→ Check power outlet, GFCI reset, circuit breaker. Test with lamp. Check if wall button works (bypasses remote). If wall button dead, check wiring to motor head.', type: 'solution' },
+  { id: 's1c', label: 'Motor hums but doesn\'t turn', type: 'action', children: ['s1c1'] },
+  { id: 's1c1', label: '→ Capacitor likely failed (very common). Replace run capacitor. If capacitor is ok, motor windings may be burned — replace motor.', type: 'solution' },
+  { id: 's2', label: 'Door reverses immediately', type: 'decision', children: ['s2a', 's2b'] },
+  { id: 's2a', label: 'Reverses going down', type: 'action', children: ['s2a1'] },
+  { id: 's2a1', label: '→ Check safety sensors: clean lenses, check alignment (both LEDs solid), verify wiring. If sensors OK, adjust close force/limit. Check for binding in tracks.', type: 'solution' },
+  { id: 's2b', label: 'Reverses going up', type: 'action', children: ['s2b1'] },
+  { id: 's2b1', label: '→ Broken torsion spring (MOST COMMON). Look above door for gap in spring coils. Call professional for replacement. Do NOT attempt to open door with broken spring.', type: 'solution' },
+  { id: 's3', label: 'Remote control not working', type: 'decision', children: ['s3a', 's3b'] },
+  { id: 's3a', label: 'No remotes work', type: 'action', children: ['s3a1'] },
+  { id: 's3a1', label: '→ #1 suspect: LED light bulbs in opener (see LED section above). Remove LEDs and test. Check antenna wire hangs full length. If wall button works, it\'s RF interference.', type: 'solution' },
+  { id: 's3b', label: 'One remote doesn\'t work', type: 'action', children: ['s3b1'] },
+  { id: 's3b1', label: '→ Replace battery (CR2032 typically). Re-program remote to opener. If still dead, remote circuit board may be damaged — replace remote.', type: 'solution' },
+  { id: 's4', label: 'Door is noisy / grinding', type: 'decision', children: ['s4a'] },
+  { id: 's4a', label: 'Identify noise location', type: 'action', children: ['s4a1'] },
+  { id: 's4a1', label: '→ Squealing: lubricate rollers, hinges, springs with silicone or white lithium grease. Grinding: check for worn rollers (replace nylon rollers). Rattling: tighten track brackets and hardware. Popping: spring needs lubrication.', type: 'solution' },
+  { id: 's5', label: 'myQ / Wi-Fi keeps disconnecting', type: 'decision', children: ['s5a'] },
+  { id: 's5a', label: 'Smart features unreliable', type: 'action', children: ['s5a1'] },
+  { id: 's5a1', label: '→ #1: Remove LED bulbs (EMI kills Wi-Fi too). #2: Check router distance and signal strength. #3: Ensure 2.4GHz network (not 5GHz). #4: Factory reset opener Wi-Fi and re-pair. #5: Consider ratgdo for local-only control.', type: 'solution' },
+];
+
+function buildFlowchart() {
+  const container = document.getElementById('flowchart');
+  if (!container) return;
+  const start = flowData.find(n => n.id === 'start');
+  let html = `<div class="flow-tree">`;
+  html += `<div class="flow-node flow-start">${start.label}</div>`;
+  html += `<div class="flow-row" style="flex-wrap:wrap;gap:.5rem;margin-top:1rem">`;
+  start.children.forEach(cid => {
+    const child = flowData.find(n => n.id === cid);
+    html += `<div class="flow-node flow-decision" onclick="expandFlow('${cid}',this)">${child.label}</div>`;
+  });
+  html += `</div>`;
+  html += `<div id="flowExpanded"></div>`;
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+function expandFlow(id, el) {
+  const node = flowData.find(n => n.id === id);
+  if (!node || !node.children) return;
+  document.querySelectorAll('.flow-decision').forEach(d => d.style.borderColor = '');
+  el.style.borderColor = 'var(--accent)';
+  let html = '<div class="flow-indent" style="margin-top:1rem">';
+  node.children.forEach(cid => {
+    const child = flowData.find(n => n.id === cid);
+    html += `<div class="flow-node flow-action" onclick="expandSolution('${cid}',this)" style="margin:.5rem 0;display:block">${child.label}</div>`;
+    if (child.children) {
+      child.children.forEach(sid => {
+        const sol = flowData.find(n => n.id === sid);
+        html += `<div class="flow-node flow-solution flow-hidden" id="sol-${sid}" style="margin:.5rem 0 .5rem 2rem;display:none">${sol.label}</div>`;
+      });
+    }
+  });
+  html += '</div>';
+  document.getElementById('flowExpanded').innerHTML = html;
+}
+
+function expandSolution(id, el) {
+  const node = flowData.find(n => n.id === id);
+  if (!node || !node.children) return;
+  node.children.forEach(sid => {
+    const solEl = document.getElementById('sol-' + sid);
+    if (solEl) solEl.style.display = solEl.style.display === 'none' ? 'block' : 'none';
+  });
+}
+
+buildFlowchart();
+
+// ══════════════════════════════
+// NAV ACTIVE STATE
+// ══════════════════════════════
+const navSections = document.querySelectorAll('.section[id]');
+const navLinks = document.querySelectorAll('.nav a');
+window.addEventListener('scroll', () => {
+  let cur = '';
+  navSections.forEach(s => { if (window.scrollY >= s.offsetTop - 200) cur = s.id; });
+  navLinks.forEach(a => { a.classList.toggle('active', a.getAttribute('href') === '#' + cur); });
+}, { passive: true });
+
+// Init
+updateCalc();
+setTimeout(drawForceBalance, 100);
+// Activate chain drive scene
+if (driveScenes.chain) driveScenes.chain.active = true;
+</script>
+</body>
+</html>
