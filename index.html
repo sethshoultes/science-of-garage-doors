@@ -404,7 +404,7 @@ body{background:#fff;color:#000}
 </div>
 </div>
 <div class="tab-content" id="tab-jackshaft">
-<div class="canvas-wrap"><canvas id="jackCanvas"></canvas><div class="canvas-label">Jackshaft — Wall-mounted, drives torsion shaft directly</div></div>
+<div class="canvas-wrap"><canvas id="jackshaftCanvas"></canvas><div class="canvas-label">Jackshaft — Wall-mounted, drives torsion shaft directly</div></div>
 <div class="info-grid">
 <div class="info-card"><h3>How It Works</h3><p>Motor mounts on the wall beside the torsion shaft and drives it directly via gear reduction. Eliminates the ceiling rail entirely. The torsion shaft + cable drum system does the actual lifting, just like manual operation but motorized. LiftMaster 8500W is the dominant product.</p></div>
 <div class="info-card"><h3>Pros & Cons</h3><p><strong style="color:var(--success)">+</strong> Frees ceiling space (high-lift garages, storage, car lifts), very quiet, clean installation, works with any door type.<br><strong style="color:var(--danger)">−</strong> Most expensive ($350–600+), requires torsion spring system (won't work with extension), limited to residential 7' doors without special kits.</p></div>
@@ -1137,75 +1137,158 @@ let extDoorT = 0, extDoorTarget = 0, showSafetyCable = true;
 (function() {
   const c = document.getElementById('extSpringCanvas'), r = makeRenderer(c);
   const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
-  cam.position.set(5, 3, 7); cam.lookAt(0, 2, 0);
-  addLights(s); orbitControls(cam, c, new THREE.Vector3(0, 2.2, -1));
+  cam.position.set(7, 4, 9); cam.lookAt(0, 2.2, -2);
+  addLights(s); orbitControls(cam, c, new THREE.Vector3(0, 2.2, -2));
+
   // Floor
-  s.add(mk(new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.85 })), { rotation: { x: -Math.PI / 2 } }));
+  s.add(mk(new THREE.Mesh(new THREE.PlaneGeometry(18, 18), new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.85 })), { rotation: { x: -Math.PI / 2 } }));
+
+  // Door geometry — same as sectional door scene
+  const epCount = 4, epH = 1.1, edW = 4.8;
+  const eDoorHeight = epCount * epH; // 4.4
+  const eCurveR = 1.0;
+  const eHorizY = eDoorHeight - eCurveR; // 3.4
+
   // Frame
-  [[-2.5, 2.5, 0], [2.5, 2.5, 0]].forEach(p => s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.12, 5, 0.12), M.frame), { position: new THREE.Vector3(...p) })));
-  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.12, 0.12), M.frame), { position: new THREE.Vector3(0, 5.02, 0) }));
-  // Horizontal track
-  [-2.4, 2.4].forEach(x => s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 7), M.frame), { position: new THREE.Vector3(x, 5, -3.5) })));
-  // Door panels
+  const eFrameH = eDoorHeight + 0.15;
+  [[-2.5, eFrameH / 2, 0], [2.5, eFrameH / 2, 0]].forEach(p => {
+    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.12, eFrameH, 0.12), M.frame), { position: new THREE.Vector3(...p) }));
+  });
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.12, 0.12), M.frame), { position: new THREE.Vector3(0, eDoorHeight + 0.06, 0) }));
+
+  // Vertical tracks
+  [-2.4, 2.4].forEach(x => s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.08, eDoorHeight, 0.1), M.frame), { position: new THREE.Vector3(x, eDoorHeight / 2, -0.12) })));
+  // Horizontal tracks
+  [-2.4, 2.4].forEach(x => s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 8), M.frame), { position: new THREE.Vector3(x, eHorizY + 0.15, -4.5) })));
+  // Track brackets
+  [-2.4, 2.4].forEach(x => { for (let z = -1.5; z > -8; z -= 2) s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.04), M.frame), { position: new THREE.Vector3(x, eHorizY + 0.5, z) })); });
+
+  // Door panels (chain-based, same as main door)
   const extPanels = [];
-  for (let i = 0; i < 4; i++) {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.1, 0.08), M.panel);
-    p.position.set(0, 0.55 + i * 1.1, 0);
-    s.add(p); extPanels.push(p);
+  for (let i = 0; i < epCount; i++) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(edW, epH, 0.08), M.panel));
+    g.add(mk(new THREE.Mesh(new THREE.BoxGeometry(edW + 0.01, 0.02, 0.1), new THREE.MeshStandardMaterial({ color: 0xbbbbbb, roughness: 0.8 })), { position: new THREE.Vector3(0, epH / 2 - 0.02, 0) }));
+    // Hinges + rollers on interior
+    [-2.1, 2.1].forEach(sx => {
+      g.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.15, 0.03), M.darkSteel), { position: new THREE.Vector3(sx, epH / 2, -0.07) }));
+      g.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 8), M.steel), { rotation: { x: Math.PI / 2 }, position: new THREE.Vector3(sx, epH / 2, -0.12) }));
+    });
+    g.position.set(0, epH / 2 + i * epH, 0);
+    s.add(g); extPanels.push(g);
   }
-  // Extension springs (one each side)
+
+  // EXTENSION SPRINGS — mounted along the horizontal track on each side
+  // They run parallel to the horizontal tracks, anchored at the rear and connected
+  // to the bottom brackets via cables routed through pulleys
   const extSprings = [];
   [-2.6, 2.6].forEach(x => {
-    const sg = { meshes: [], x, cable: null };
-    extSprings.push(sg);
-    sg.group = new THREE.Group();
+    const sg = { x, group: new THREE.Group() };
     s.add(sg.group);
+    extSprings.push(sg);
   });
-  // Safety cable line
+
+  // Pulleys at the junction where vertical track meets horizontal track
+  [-2.4, 2.4].forEach(x => {
+    s.add(mk(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 6, 12), M.steel), { position: new THREE.Vector3(x, eHorizY + 0.1, -1.0) }));
+  });
+
+  // Lift cables (from bottom brackets, up through pulleys, back to springs)
+  const extCables = [];
+  [-2.3, 2.3].forEach(x => {
+    const geo = new THREE.BufferGeometry();
+    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xaaaaaa }));
+    s.add(line); extCables.push({ line, x });
+  });
+
+  // Safety cables running through the springs
   const safetyCables = [];
   [-2.6, 2.6].forEach(x => {
     const geo = new THREE.BufferGeometry();
-    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeee00, linewidth: 2 }));
-    s.add(line);
-    safetyCables.push(line);
-  });
-  // Pulleys
-  [-2.4, 2.4].forEach(x => {
-    s.add(mk(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 6, 12), M.steel), { position: new THREE.Vector3(x, 5, -0.5) }));
+    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeee00 }));
+    s.add(line); safetyCables.push({ line, x });
   });
 
-  function buildExtSprings(stretch) {
+  function buildExtSprings(t) {
+    const stretch = t * 2.0; // How far the spring has stretched
+    const baseLen = 1.8;
+    const curLen = baseLen + stretch;
     extSprings.forEach(sg => {
-      sg.group.children.forEach(c => sg.group.remove(c));
-      sg.group.children = [];
-      const baseLen = 2;
-      const curLen = baseLen + stretch * 2;
+      // Clear old spring meshes
+      while (sg.group.children.length) sg.group.remove(sg.group.children[0]);
+
+      // Spring runs horizontally along the track, starting from rear anchor
       const coils = 25;
       const pts = [];
-      for (let t = 0; t < Math.PI * 2 * coils; t += 0.2) {
-        const p = t / (Math.PI * 2 * coils);
-        pts.push(new THREE.Vector3(0, 5 - p * curLen, sg.x > 0 ? -0.3 : -0.3));
+      const springStartZ = -6; // Rear anchor point
+      for (let j = 0; j < Math.PI * 2 * coils; j += 0.2) {
+        const progress = j / (Math.PI * 2 * coils);
+        const z = springStartZ + progress * curLen;
+        pts.push(new THREE.Vector3(0, Math.cos(j) * 0.08, z + Math.sin(j) * 0.08));
       }
-      if (pts.length > 1) {
+      if (pts.length > 2) {
         const curve = new THREE.CatmullRomCurve3(pts);
-        const springMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.025, 6, false), M.red.clone());
+        const springMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.02, 6, false), M.red.clone());
         sg.group.add(springMesh);
-        const stress = stretch / 3;
+        const stress = stretch / 2.5;
         springMesh.material.color.setRGB(Math.min(1, 0.75 + stress * 0.25), Math.max(0.15, 0.45 - stress * 0.35), 0.12);
+        springMesh.material.emissive = new THREE.Color(0xff2222);
         springMesh.material.emissiveIntensity = 0.05 + stress * 0.15;
       }
-      sg.group.position.x = sg.x;
+
+      // Rear anchor bracket
+      sg.group.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.06), M.darkSteel), { position: new THREE.Vector3(0, 0, springStartZ) }));
+      // Front end hook
+      sg.group.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), M.orange), { position: new THREE.Vector3(0, 0, springStartZ + curLen) }));
+
+      sg.group.position.set(sg.x, eHorizY + 0.15, 0);
     });
-    // Safety cables
-    safetyCables.forEach((line, i) => {
-      line.visible = showSafetyCable;
-      const x = i === 0 ? -2.6 : 2.6;
-      line.geometry.setFromPoints([
-        new THREE.Vector3(x, 5.1, -0.3),
-        new THREE.Vector3(x, 5 - 2 - stretch * 2, -0.3),
-        new THREE.Vector3(x, 2.5, -0.3)
+
+    // Safety cables — run through the center of each spring
+    safetyCables.forEach((sc, i) => {
+      sc.line.visible = showSafetyCable;
+      const x = extSprings[i].x;
+      sc.line.geometry.setFromPoints([
+        new THREE.Vector3(x, eHorizY + 0.15, -6.1),
+        new THREE.Vector3(x, eHorizY + 0.15, -6 + baseLen + stretch + 0.2)
       ]);
     });
+
+    // Lift cables: from bottom bracket → up to pulley → back along track to spring end
+    extCables.forEach(({ line, x }, i) => {
+      const bottomY = extPanels[0].position.y - epH / 2 + 0.1;
+      const bottomZ = extPanels[0].position.z - 0.1;
+      const pulleyY = eHorizY + 0.1;
+      const pulleyZ = -1.0;
+      const springEndZ = -6 + baseLen + stretch;
+      line.geometry.setFromPoints([
+        new THREE.Vector3(x * 0.92, bottomY, bottomZ),
+        new THREE.Vector3(x * 0.92, pulleyY, pulleyZ),
+        new THREE.Vector3(x > 0 ? 2.6 : -2.6, eHorizY + 0.15, springEndZ)
+      ]);
+    });
+  }
+
+  // Chain-path door animation (same as sectional door scene)
+  function updateExtDoor(t) {
+    const advance = t * (eDoorHeight + eCurveR * Math.PI / 2);
+    for (let i = 0; i < epCount; i++) {
+      const p = extPanels[i];
+      const panelCenter = i * epH + epH / 2 + advance;
+      if (panelCenter < eDoorHeight) {
+        p.position.set(0, panelCenter, 0);
+        p.rotation.x = 0;
+      } else if (panelCenter < eDoorHeight + eCurveR * Math.PI / 2) {
+        const angle = ((panelCenter - eDoorHeight) / (eCurveR * Math.PI / 2)) * Math.PI / 2;
+        p.position.set(0, eDoorHeight + eCurveR * Math.cos(angle) - eCurveR, -(eCurveR * Math.sin(angle)));
+        p.rotation.x = -angle;
+      } else {
+        const horizDist = panelCenter - eDoorHeight - eCurveR * Math.PI / 2;
+        p.position.set(0, eDoorHeight - eCurveR, -(eCurveR + horizDist));
+        p.rotation.x = -Math.PI / 2;
+      }
+      if (panelCenter - epH / 2 < 0) { p.position.set(0, epH / 2, 0); p.rotation.x = 0; }
+    }
   }
 
   scenes.extSpringCanvas = { active: false };
@@ -1214,15 +1297,8 @@ let extDoorT = 0, extDoorTarget = 0, showSafetyCable = true;
     if (!scenes.extSpringCanvas?.active) return;
     const { w, h } = fitRenderer(r, c); cam.aspect = w / h; cam.updateProjectionMatrix();
     if (Math.abs(extDoorT - extDoorTarget) > 0.002) extDoorT += (extDoorTarget - extDoorT) * 0.015;
-    // Animate panels
-    for (let i = 0; i < 4; i++) {
-      const p = extPanels[i];
-      const pt = Math.max(0, Math.min(1, (extDoorT * 4 - (3 - i))));
-      if (pt <= 0) { p.position.set(0, 0.55 + i * 1.1, 0); p.rotation.x = 0; }
-      else if (pt < 0.5) { const a = pt * 2, angle = a * Math.PI / 2; p.position.set(0, 4.5 - 0.55 + Math.cos(angle) - 1, -Math.sin(angle)); p.rotation.x = -angle; }
-      else { const slide = (pt - 0.5) * 2; p.position.set(0, 4.5 - 0.55, -1 - slide * 2.5); p.rotation.x = -Math.PI / 2; }
-    }
-    buildExtSprings(extDoorT * 2.5);
+    updateExtDoor(extDoorT);
+    buildExtSprings(extDoorT);
     // Readouts
     const stretch = extDoorT * 24;
     const k = 6.5;
@@ -1259,60 +1335,212 @@ function createDrive(canvasId, type) {
   const c = document.getElementById(canvasId);
   if (!c) return;
   const r = makeRenderer(c), s = new THREE.Scene();
-  const cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
-  cam.position.set(3, 2, 5); cam.lookAt(0, 0, 0);
-  addLights(s); orbitControls(cam, c);
+  const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
+  cam.position.set(2, 1.8, 5); cam.lookAt(0, 0.2, 0);
+  addLights(s); orbitControls(cam, c, new THREE.Vector3(0, 0.2, 0));
   addGrid(s, 4, -0.5);
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(8, 0.12, 0.12), M.darkSteel);
+  
+  // T-Rail (common to chain, belt, screw — the channel the trolley rides in)
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(8, 0.1, 0.15), M.darkSteel);
   s.add(rail);
+  // Rail top flange
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(8, 0.03, 0.3), M.darkSteel), { position: new THREE.Vector3(0, 0.06, 0) }));
+  
   let trolley, parts = {};
-  const housing = new THREE.Mesh(new THREE.BoxGeometry(1, 0.55, 0.75), M.darkSteel);
-  housing.position.x = -3.5; s.add(housing);
+  
+  // Motor housing (at far end of rail)
+  const housing = new THREE.Group();
+  const housingBody = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.6, 0.8), M.darkSteel);
+  housing.add(housingBody);
+  // Motor light bulb
+  housing.add(mk(new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), M.glow), { position: new THREE.Vector3(0, -0.2, 0.3) }));
+  // Cover/lid
+  housing.add(mk(new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.02, 0.82), new THREE.MeshStandardMaterial({ color: 0x9a9aa5, metalness: 0.3, roughness: 0.4 })), { position: new THREE.Vector3(0, 0.31, 0) }));
+  housing.position.set(-3.5, 0.35, 0);
+  s.add(housing);
 
   if (type === 'chain') {
-    for (let i = -3; i < 3.5; i += 0.14) s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.035, 0.055), M.steel), { position: new THREE.Vector3(i, 0.09, 0) }));
-    parts.sprocket = mk(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.04, 8, 12), M.orange), { position: new THREE.Vector3(-3.5, 0.09, 0) });
-    s.add(parts.sprocket);
-    trolley = mk(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.28), M.orange), { position: new THREE.Vector3(1, 0.18, 0) });
-    s.add(trolley);
-  } else if (type === 'belt') {
-    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.025, 0.22), M.rubber), { position: new THREE.Vector3(-0.25, 0.09, 0) }));
-    for (let i = 0; i < 3; i++) s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.004, 0.004), new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.4, roughness: 0.3 })), { position: new THREE.Vector3(-0.25, 0.09, (i - 1) * 0.07) }));
-    parts.sprocket = mk(new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 8, 16), M.steel), { position: new THREE.Vector3(-3.5, 0.09, 0) });
-    s.add(parts.sprocket);
-    trolley = mk(new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.28), M.orange), { position: new THREE.Vector3(1, 0.18, 0) });
-    s.add(trolley);
-  } else if (type === 'screw') {
-    const rodPts = [];
-    for (let t = 0; t < Math.PI * 80; t += 0.4) rodPts.push(new THREE.Vector3((t / (Math.PI * 80)) * 7 - 3.5, 0.055 * Math.cos(t), 0.055 * Math.sin(t)));
-    const rod = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rodPts), 200, 0.02, 5, false), M.steel);
-    s.add(rod); parts.rod = rod;
-    s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 7, 8), M.darkSteel), { rotation: { z: Math.PI / 2 } }));
-    trolley = mk(new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.32, 0.32), M.orange), { position: new THREE.Vector3(1, 0.12, 0) });
-    s.add(trolley);
-  } else if (type === 'direct') {
-    for (let i = -3.5; i < 3.5; i += 0.11) s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.025, 0.045), M.darkSteel), { position: new THREE.Vector3(i, -0.04, 0) }));
+    // ── CHAIN DRIVE ──
+    // Chain links along the top of the rail — chain enters motor housing at one end
+    for (let i = -2.8; i < 3.5; i += 0.1) {
+      const isOuter = Math.floor(i * 10) % 2 === 0;
+      const link = new THREE.Mesh(
+        new THREE.BoxGeometry(0.07, isOuter ? 0.04 : 0.03, isOuter ? 0.06 : 0.04),
+        M.steel
+      );
+      link.position.set(i, 0.09, 0);
+      s.add(link);
+      if (isOuter) {
+        const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.07, 4), M.darkSteel);
+        pin.rotation.x = Math.PI / 2;
+        pin.position.set(i, 0.09, 0);
+        s.add(pin);
+      }
+    }
+    // Return chain run underneath the rail
+    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(6.3, 0.02, 0.04), M.steel), 
+      { position: new THREE.Vector3(0.35, -0.06, 0) }));
+    
+    // Sprocket is INSIDE the motor housing — not visible
+    // We still track it for animation but don't add it to the scene
+    parts.sprocket = null;
+    
+    // Small idler at far end where chain wraps around
+    const idler = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.015, 6, 12), M.steel);
+    idler.position.set(3.5, 0.02, 0);
+    s.add(idler);
+    
+    // Trolley carriage
     trolley = new THREE.Group();
-    trolley.add(new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.45, 0.55), M.orange));
-    parts.gear = mk(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 6, 10), M.steel), { position: new THREE.Vector3(0, -0.13, 0) });
-    trolley.add(parts.gear);
-    trolley.position.set(0, 0.28, 0); s.add(trolley);
-    housing.visible = false;
-  } else if (type === 'jackshaft') {
-    housing.position.set(-3, 0, 0); housing.scale.set(0.8, 1.2, 1);
-    // Torsion shaft
-    s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 6, 8), M.steel), { rotation: { z: Math.PI / 2 } }));
-    // Spring on shaft
-    const jSpPts = [];
-    for (let t = 0; t < Math.PI * 15; t += 0.2) jSpPts.push(new THREE.Vector3(t * 0.06 - 1, Math.cos(t) * 0.2, Math.sin(t) * 0.2));
-    s.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(jSpPts), 60, 0.02, 6, false), M.red));
-    // Drums at ends
-    [2.5, -2.5].forEach(x => s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.15, 10), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(x, 0, 0) })));
-    // Drive gear on motor
-    parts.gear = mk(new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.03, 6, 12), M.orange), { position: new THREE.Vector3(-2.6, 0, 0) });
-    s.add(parts.gear);
-    trolley = null; // No trolley in jackshaft
+    trolley.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.22, 0.3), M.orange));
+    trolley.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.06), M.steel), { position: new THREE.Vector3(0, -0.26, 0) }));
+    trolley.position.set(1, 0.2, 0);
+    s.add(trolley);
+
+  } else if (type === 'belt') {
+    // ── BELT DRIVE ──
+    // Belt is a single toothed strip running along the TOP of the T-rail
+    // It enters the motor housing at one end, wraps around idler at far end
+    // NO visible gear/pulley — drive mechanism is inside the motor housing
+    const motorX = -3.0, idlerX = 3.5;
+    const idlerR = 0.08;
+    
+    // Belt — dark toothed strip running along top of rail
+    const beltMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, metalness: 0.05, roughness: 0.9 });
+    // Main belt strip on top of rail
+    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(idlerX - motorX + 0.5, 0.015, 0.06), beltMat),
+      { position: new THREE.Vector3((motorX + idlerX) / 2, 0.065, 0) }));
+    // Belt teeth (visible ridges along the top)
+    for (let x = motorX + 0.1; x < idlerX + 0.2; x += 0.045) {
+      s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.012, 0.058), beltMat),
+        { position: new THREE.Vector3(x, 0.08, 0) }));
+    }
+    // Return run underneath the rail (barely visible)
+    s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(idlerX - motorX + 0.5, 0.012, 0.05), beltMat),
+      { position: new THREE.Vector3((motorX + idlerX) / 2, -0.06, 0) }));
+    
+    // Idler wheel at far end (small, where belt wraps around)
+    const idlerPulley = new THREE.Group();
+    const ipWheel = new THREE.Mesh(new THREE.CylinderGeometry(idlerR, idlerR, 0.06, 12), M.steel);
+    ipWheel.rotation.x = Math.PI / 2;
+    idlerPulley.add(ipWheel);
+    idlerPulley.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.08, 6), M.darkSteel), { rotation: { x: Math.PI / 2 } }));
+    idlerPulley.position.set(idlerX + 0.2, 0, 0);
+    s.add(idlerPulley);
+    parts.sprocket = idlerPulley;
+    
+    // Trolley carriage (clamped to belt on top of rail)
+    trolley = new THREE.Group();
+    trolley.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.22, 0.3), M.orange));
+    trolley.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.06), M.steel), { position: new THREE.Vector3(0, -0.26, 0) }));
+    trolley.position.set(1, 0.2, 0);
+    s.add(trolley);
+
+  } else if (type === 'screw') {
+    // ── SCREW DRIVE ──
+    // Core rod (the shaft)
+    const rodLen = 7;
+    s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, rodLen, 12), M.steel), { rotation: { z: Math.PI / 2 } }));
+    
+    // Visible threads — large helical ridge wrapping the rod
+    const threadPts = [];
+    const threadPitch = 0.12; // Distance between threads
+    const threadRadius = 0.1; // How far threads stick out
+    for (let t = 0; t < Math.PI * 2 * (rodLen / threadPitch); t += 0.08) {
+      const progress = t / (Math.PI * 2 * (rodLen / threadPitch));
+      const x = (progress - 0.5) * rodLen;
+      threadPts.push(new THREE.Vector3(x, Math.cos(t) * threadRadius, Math.sin(t) * threadRadius));
+    }
+    const threadCurve = new THREE.CatmullRomCurve3(threadPts);
+    const threadMesh = new THREE.Mesh(
+      new THREE.TubeGeometry(threadCurve, 500, 0.018, 5, false),
+      new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.5, roughness: 0.25 })
+    );
+    s.add(threadMesh);
+    parts.rod = threadMesh;
+    
+    // Trolley with internal nut coupling visible
+    trolley = new THREE.Group();
+    const trolleyBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.35), M.orange);
+    trolley.add(trolleyBody);
+    // Plastic nut coupling (visible as yellow insert)
+    const nutCoupling = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8), 
+      new THREE.MeshStandardMaterial({ color: 0xddcc44, metalness: 0.1, roughness: 0.6, emissive: 0xbbaa22, emissiveIntensity: 0.1 }));
+    nutCoupling.rotation.z = Math.PI / 2;
+    trolley.add(nutCoupling);
+    // Arm bracket
+    trolley.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.06), M.steel), { position: new THREE.Vector3(0, -0.32, 0) }));
+    trolley.position.set(1, 0.12, 0);
+    s.add(trolley);
+    
+    // Hide T-rail for screw drive — the rod IS the rail
     rail.visible = false;
+    s.children.forEach(ch => { if (ch.geometry && ch.geometry.parameters && ch.geometry.parameters.width === 8 && ch.geometry.parameters.height === 0.03) ch.visible = false; });
+
+  } else if (type === 'direct') {
+    // ── DIRECT DRIVE ──
+    // Stationary chain embedded in rail
+    for (let i = -3.5; i < 3.5; i += 0.1) {
+      s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.03, 0.05), M.darkSteel), { position: new THREE.Vector3(i, -0.02, 0) }));
+    }
+    // The motor IS the trolley — it moves along the rail
+    trolley = new THREE.Group();
+    const motorBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.6), M.orange);
+    trolley.add(motorBody);
+    // Motor end cap
+    trolley.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 12), M.darkSteel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(0.42, 0, 0) }));
+    // Internal gear (meshes with stationary chain)
+    parts.gear = mk(new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 6, 12), M.steel), { position: new THREE.Vector3(0, -0.17, 0) });
+    trolley.add(parts.gear);
+    // Arm bracket
+    trolley.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.35, 0.06), M.steel), { position: new THREE.Vector3(0, -0.42, 0) }));
+    // Power cable (flexible, trails behind motor)
+    trolley.position.set(0, 0.32, 0);
+    s.add(trolley);
+    housing.visible = false;
+
+  } else if (type === 'jackshaft') {
+    // ── JACKSHAFT / WALL-MOUNT ──
+    rail.visible = false;
+    s.children.forEach(ch => { if (ch.geometry && ch.geometry.parameters && ch.geometry.parameters.width === 8 && ch.geometry.parameters.height === 0.03) ch.visible = false; });
+    
+    // Wall-mounted motor housing (vertical, beside the torsion shaft)
+    housing.position.set(-2.8, 0, 0);
+    housing.rotation.z = 0;
+    housingBody.geometry = new THREE.BoxGeometry(0.7, 0.9, 0.5);
+    
+    // Torsion shaft (horizontal, what the motor drives)
+    s.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6, 10), M.steel), { rotation: { z: Math.PI / 2 } }));
+    
+    // Torsion spring on shaft
+    const jSpPts = [];
+    for (let t = 0; t < Math.PI * 18; t += 0.15) jSpPts.push(new THREE.Vector3(t * 0.05 - 0.8, Math.cos(t) * 0.22, Math.sin(t) * 0.22));
+    s.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(jSpPts), 80, 0.022, 6, false), M.red));
+    
+    // Cable drums at each end
+    [2.5, -2.2].forEach(x => {
+      const drum = new THREE.Group();
+      drum.add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.18, 12), M.steel));
+      // Drum flange
+      drum.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.02, 12), M.darkSteel), { position: new THREE.Vector3(0, 0.09, 0) }));
+      drum.rotation.z = Math.PI / 2;
+      drum.position.set(x, 0, 0);
+      s.add(drum);
+    });
+    
+    // Drive gear connection between motor and shaft
+    parts.gear = mk(new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.035, 8, 16), M.orange), { position: new THREE.Vector3(-2.35, 0, 0) });
+    s.add(parts.gear);
+    // Smaller gear on motor output
+    s.add(mk(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.025, 6, 12), M.orange), { position: new THREE.Vector3(-2.55, 0, 0) }));
+    
+    // Cables dropping down from drums
+    [-2.2, 2.5].forEach(x => {
+      const cPts = [new THREE.Vector3(x, 0, 0), new THREE.Vector3(x, -1.5, 0.3)];
+      s.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cPts), new THREE.LineBasicMaterial({ color: 0xaaaaaa })));
+    });
+    
+    trolley = null;
   }
   parts.trolley = trolley;
   const data = { r, s, cam, c, parts, time: 0, active: false };
@@ -1329,7 +1557,10 @@ function animDrives() {
     d.time += 0.016;
     const { w, h } = fitRenderer(d.r, d.c); d.cam.aspect = w / h; d.cam.updateProjectionMatrix();
     if (d.parts.trolley) d.parts.trolley.position.x = Math.sin(d.time * 0.5) * 2.5;
-    if (d.parts.sprocket) d.parts.sprocket.rotation.z += 0.03;
+    if (d.parts.sprocket) {
+      if (type === 'jackshaft') d.parts.sprocket.rotation.y += 0.03;
+      else d.parts.sprocket.rotation.z += 0.03;
+    }
     if (d.parts.gear) d.parts.gear.rotation.z += 0.04;
     if (d.parts.rod) d.parts.rod.rotation.x += 0.02;
     d.r.render(d.s, d.cam);
@@ -1354,68 +1585,161 @@ function showTab(name, btn) {
 let motorExploded = false, motorRunning = false, showCurrent = false, motorExplodeT = 0;
 (function() {
   const c = document.getElementById('motorCanvas'), r = makeRenderer(c);
-  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
-  cam.position.set(5, 3, 7); cam.lookAt(0, 0, 0);
-  addLights(s); orbitControls(cam, c);
-  // Extra point light at motor center for internal illumination
-  const motorPt = new THREE.PointLight(0xffeedd, 0.8, 10);
-  motorPt.position.set(0, 0.3, 0); s.add(motorPt);
-  addGrid(s, 3, -1.5);
+  const s = new THREE.Scene(), cam = new THREE.PerspectiveCamera(36, 1, 0.1, 50);
+  cam.position.set(4.5, 3, 5); cam.lookAt(0, 0, 0);
+  addLights(s); orbitControls(cam, c, new THREE.Vector3(0, 0, 0));
+  const motorPt = new THREE.PointLight(0xffeedd, 0.6, 8);
+  motorPt.position.set(0, 0.5, 0); s.add(motorPt);
+  addGrid(s, 3, -1.0);
 
-  const casingMat = new THREE.MeshStandardMaterial({ color: 0x8888a0, metalness: 0.3, roughness: 0.4, transparent: true, opacity: 0.5, emissive: 0x444455, emissiveIntensity: 0.05 });
-  const casingTop = mk(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.8, 20, 1, false, 0, Math.PI), casingMat.clone()), { position: new THREE.Vector3(0, 0.4, 0) });
-  casingTop.userData.eo = new THREE.Vector3(0, 2.2, 0); s.add(casingTop);
-  const casingBot = mk(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.8, 20, 1, false, Math.PI, Math.PI), casingMat.clone()), { position: new THREE.Vector3(0, 0.4, 0) });
-  casingBot.userData.eo = new THREE.Vector3(0, -1.8, 0); s.add(casingBot);
+  // ── RECTANGULAR HOUSING (split for exploded view) ──
+  const housingMat = new THREE.MeshStandardMaterial({ color: 0x8888a0, metalness: 0.3, roughness: 0.4, transparent: true, opacity: 0.4 });
+  // Top cover
+  const housingTop = mk(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.05, 1.6), housingMat.clone()), { position: new THREE.Vector3(0, 0.65, 0) });
+  housingTop.userData.eo = new THREE.Vector3(0, 2.0, 0); s.add(housingTop);
+  // Bottom plate
+  const housingBot = mk(new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.05, 1.6), housingMat.clone()), { position: new THREE.Vector3(0, -0.65, 0) });
+  housingBot.userData.eo = new THREE.Vector3(0, -1.5, 0); s.add(housingBot);
+  // Side walls (thin, transparent)
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x8888a0, metalness: 0.3, roughness: 0.4, transparent: true, opacity: 0.2 });
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.3, 0.03), wallMat), { position: new THREE.Vector3(0, 0, 0.8) }));
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.3, 0.03), wallMat), { position: new THREE.Vector3(0, 0, -0.8) }));
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.3, 1.6), wallMat), { position: new THREE.Vector3(1.1, 0, 0) }));
+  s.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.3, 1.6), wallMat), { position: new THREE.Vector3(-1.1, 0, 0) }));
 
-  // Stator
-  const stator = new THREE.Group();
+  // ── MOTOR (horizontal cylinder on its side) ──
+  const motorGroup = new THREE.Group();
+  // Motor can - horizontal cylinder
+  const motorCan = mk(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.7, 16), M.darkSteel), { rotation: { z: Math.PI / 2 } });
+  motorGroup.add(motorCan);
+  // Motor end caps
+  motorGroup.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.03, 16), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(0.36, 0, 0) }));
+  motorGroup.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.03, 16), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(-0.36, 0, 0) }));
+
+  // Stator windings visible through transparent motor can
   const currentMeshes = [];
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    const coil = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 6, 8), M.copper);
-    coil.position.set(Math.cos(a) * 0.65, 0.4, Math.sin(a) * 0.65);
-    coil.rotation.x = Math.PI / 2; coil.lookAt(0, 0.4, 0);
-    stator.add(coil);
-    // Current flow indicators
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    const coil = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.025, 6, 8), M.copper);
+    coil.position.set(0, Math.sin(a) * 0.25, Math.cos(a) * 0.25);
+    coil.rotation.y = Math.PI / 2;
+    motorGroup.add(coil);
     const flowMat = new THREE.MeshStandardMaterial({ color: 0x44ff44, emissive: 0x44ff44, emissiveIntensity: 0.8, transparent: true, opacity: 0 });
-    const flow = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.055, 6, 8), flowMat);
-    flow.position.copy(coil.position); flow.rotation.copy(coil.rotation); flow.lookAt(0, 0.4, 0);
-    stator.add(flow);
+    const flow = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.035, 6, 8), flowMat);
+    flow.position.copy(coil.position); flow.rotation.copy(coil.rotation);
+    motorGroup.add(flow);
     currentMeshes.push(flowMat);
   }
-  stator.userData.eo = new THREE.Vector3(2.2, 0, 0); s.add(stator);
 
-  // Rotor
+  // Rotor inside motor (visible through transparent casing)
   const rotor = new THREE.Group();
-  rotor.add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.6, 16), M.darkSteel));
-  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; rotor.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.65, 4), M.steel), { position: new THREE.Vector3(Math.cos(a) * 0.28, 0, Math.sin(a) * 0.28) })); }
-  rotor.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5, 8), M.steel));
-  rotor.position.y = 0.4; rotor.userData.eo = new THREE.Vector3(0, 0, 0); s.add(rotor);
+  const rotorCore = mk(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.55, 12), M.darkSteel), { rotation: { z: Math.PI / 2 } });
+  rotor.add(rotorCore);
+  // Rotor bars
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    rotor.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.6, 4), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(0, Math.sin(a) * 0.12, Math.cos(a) * 0.12) }));
+  }
+  motorGroup.add(rotor);
 
-  // Worm gear
-  const wormG = new THREE.Group();
-  const wPts = []; for (let t = 0; t < Math.PI * 8; t += 0.2) wPts.push(new THREE.Vector3(Math.cos(t) * 0.12, t * 0.025 - 0.5, Math.sin(t) * 0.12));
-  wormG.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wPts), 40, 0.02, 5, false), M.steel));
-  const wheel = mk(new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.08, 8, 24), M.orange), { rotation: { x: Math.PI / 2 }, position: new THREE.Vector3(0.55, 0, 0) });
-  wormG.add(wheel);
-  wormG.position.set(0, -0.8, 0); wormG.userData.eo = new THREE.Vector3(-2.5, -1.2, 0); s.add(wormG);
+  // Motor shaft extending out to the worm
+  const motorShaft = mk(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8), M.steel), { rotation: { z: Math.PI / 2 }, position: new THREE.Vector3(0.7, 0, 0) });
+  motorGroup.add(motorShaft);
 
-  // Capacitor
-  const cap = mk(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.5, 8), M.blue), { position: new THREE.Vector3(1.3, 0.4, 0.5) });
-  cap.userData.eo = new THREE.Vector3(3.2, 1.2, 1.2); s.add(cap);
+  motorGroup.position.set(-0.4, 0, 0.15);
+  motorGroup.userData.eo = new THREE.Vector3(-2.0, 0, 0);
+  s.add(motorGroup);
 
-  // PCB
-  const pcb = mk(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 0.8), M.pcb), { position: new THREE.Vector3(0, 1.3, 0) });
-  pcb.userData.eo = new THREE.Vector3(0, 3.8, 0);
-  for (let i = 0; i < 8; i++) pcb.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.06 + Math.random() * 0.1, 0.03, 0.04 + Math.random() * 0.05), new THREE.MeshStandardMaterial({ color: Math.random() > 0.5 ? 0x555560 : 0xcc5544 })), { position: new THREE.Vector3((Math.random() - 0.5) * 0.8, 0.03, (Math.random() - 0.5) * 0.5) }));
+  // ── WORM (helical gear on motor shaft) ──
+  const wormGroup = new THREE.Group();
+  const wPts = [];
+  for (let t = 0; t < Math.PI * 10; t += 0.15)
+    wPts.push(new THREE.Vector3(t * 0.012 - 0.18, Math.cos(t) * 0.07, Math.sin(t) * 0.07));
+  wormGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wPts), 50, 0.015, 5, false), M.steel));
+  // Worm core shaft
+  wormGroup.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.5, 8), M.darkSteel), { rotation: { z: Math.PI / 2 } }));
+  wormGroup.position.set(0.55, 0, 0.15);
+  wormGroup.userData.eo = new THREE.Vector3(1.5, 0, 1.5);
+  s.add(wormGroup);
+
+  // ── SPUR GEAR (large flat toothed disc) ──
+  const spurGear = new THREE.Group();
+  // Main gear disc - THICK, visible teeth
+  spurGear.add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.12, 24), M.steel));
+  // Gear teeth around circumference
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2;
+    const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.035), M.steel);
+    tooth.position.set(Math.cos(a) * 0.47, 0, Math.sin(a) * 0.47);
+    tooth.rotation.y = -a;
+    spurGear.add(tooth);
+  }
+  // Hub with keyway
+  spurGear.add(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.15, 8), M.darkSteel));
+  // Vertical output shaft going UP to sprocket
+  const outputShaft = mk(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8), M.steel), { position: new THREE.Vector3(0, 0.5, 0) });
+  spurGear.add(outputShaft);
+  spurGear.position.set(0.55, -0.15, 0.15);
+  spurGear.userData.eo = new THREE.Vector3(1.5, -1.5, 0);
+  s.add(spurGear);
+  const wheel = spurGear; // For animation reference
+
+  // ── OUTPUT SPROCKET (on top, driven by spur gear shaft) ──
+  const outputSprocket = new THREE.Group();
+  outputSprocket.add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 16), M.orange));
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.02), M.orange);
+    tooth.position.set(Math.cos(a) * 0.23, 0, Math.sin(a) * 0.23);
+    tooth.rotation.y = -a;
+    outputSprocket.add(tooth);
+  }
+  outputSprocket.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.07, 8), M.darkSteel));
+  outputSprocket.position.set(0.55, 0.7, 0.15);
+  s.add(outputSprocket);
+
+  // ── CAPACITOR (cylindrical, mounted in housing) ──
+  const cap = new THREE.Group();
+  cap.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), M.blue), { rotation: { z: Math.PI / 2 } }));
+  // Leads
+  cap.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.08, 4), M.wire), { position: new THREE.Vector3(0.18, 0, 0) }));
+  cap.add(mk(new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.08, 4), M.wire), { position: new THREE.Vector3(-0.18, 0, 0) }));
+  cap.position.set(-0.6, 0.35, -0.4);
+  cap.userData.eo = new THREE.Vector3(-2.0, 1.2, -1.5);
+  s.add(cap);
+
+  // ── PCB CONTROLLER BOARD ──
+  const pcb = new THREE.Group();
+  pcb.add(new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.03, 0.5), M.pcb));
+  for (let i = 0; i < 6; i++) {
+    pcb.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.04 + Math.random() * 0.06, 0.02, 0.03 + Math.random() * 0.03),
+      new THREE.MeshStandardMaterial({ color: Math.random() > 0.5 ? 0x555560 : 0xcc5544 })),
+      { position: new THREE.Vector3((Math.random() - 0.5) * 0.5, 0.025, (Math.random() - 0.5) * 0.3) }));
+  }
+  // Big relay
+  pcb.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.08), M.darkSteel), { position: new THREE.Vector3(0.2, 0.04, 0.1) }));
+  pcb.position.set(0, 0.5, -0.25);
+  pcb.userData.eo = new THREE.Vector3(0, 2.5, -1.5);
   s.add(pcb);
 
-  // Limit switch
-  const limSw = mk(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.1), M.orange), { position: new THREE.Vector3(-1.2, -0.5, 0.5) });
-  limSw.userData.eo = new THREE.Vector3(-3.2, -1.2, 2); s.add(limSw);
+  // ── LIMIT SWITCH ASSEMBLY ──
+  const limSw = new THREE.Group();
+  limSw.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.06), M.orange));
+  // Small arm
+  limSw.add(mk(new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 0.02), M.steel), { position: new THREE.Vector3(0.08, 0.04, 0) }));
+  limSw.position.set(0.8, -0.45, -0.3);
+  limSw.userData.eo = new THREE.Vector3(2.0, -1.0, -1.5);
+  s.add(limSw);
 
-  const explodables = [casingTop, casingBot, stator, wormG, cap, pcb, limSw];
+  // ── WIRING (decorative) ──
+  const wireMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.8 });
+  const wire1Pts = [new THREE.Vector3(-0.4, 0.3, 0.15), new THREE.Vector3(-0.2, 0.45, -0.1), new THREE.Vector3(0, 0.5, -0.25)];
+  s.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wire1Pts), 8, 0.008, 4, false), wireMat));
+  const wire2Pts = [new THREE.Vector3(-0.6, 0.3, -0.4), new THREE.Vector3(-0.3, 0.45, -0.3), new THREE.Vector3(0, 0.5, -0.25)];
+  s.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wire2Pts), 8, 0.008, 4, false),
+    new THREE.MeshStandardMaterial({ color: 0x3355cc, roughness: 0.8 })));
+
+  const explodables = [housingTop, housingBot, motorGroup, wormGroup, spurGear, cap, pcb, limSw];
   explodables.forEach(o => { if (!o.userData.bp) o.userData.bp = o.position.clone(); });
 
   scenes.motorCanvas = { active: false };
@@ -1428,11 +1752,14 @@ let motorExploded = false, motorRunning = false, showCurrent = false, motorExplo
     const tt = motorExploded ? 1 : 0;
     motorExplodeT += (tt - motorExplodeT) * 0.04;
     explodables.forEach(o => { if (o.userData.eo && o.userData.bp) o.position.lerpVectors(o.userData.bp, o.userData.bp.clone().add(o.userData.eo), motorExplodeT); });
-    if (motorRunning) { rotor.rotation.y += 0.12; wheel.rotation.z += 0.12 / 40; }
-    // Current flow animation
+    if (motorRunning) {
+      rotor.rotation.x += 0.12; // Motor spins around horizontal axis
+      spurGear.rotation.y += 0.12 / 40; // Spur gear slow (worm reduction)
+      outputSprocket.rotation.y += 0.12 / 40; // Same as spur gear
+    }
     currentMeshes.forEach((mat, i) => {
       if (showCurrent && motorRunning) {
-        const phase = Math.sin(mTime * 8 + i * Math.PI / 3);
+        const phase = Math.sin(mTime * 8 + i * Math.PI / 2);
         mat.opacity = Math.max(0, phase) * 0.6;
         mat.emissiveIntensity = Math.max(0, phase) * 1.2;
       } else { mat.opacity = 0; }
