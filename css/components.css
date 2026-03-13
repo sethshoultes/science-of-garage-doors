@@ -12,6 +12,9 @@
 
 .canvas-wrap canvas { width: 100% !important; height: 100% !important; }
 
+/* Hide canvas containers that have no registered scene yet */
+.canvas-wrap:not([data-scene-id]) { display: none; }
+
 .canvas-label {
   position: absolute;
   bottom: 1rem;
