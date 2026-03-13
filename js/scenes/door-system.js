@@ -36,15 +36,15 @@ export const descriptor = {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
-    camera.position.set(7, 4.5, 11);
-    camera.lookAt(0, 2.5, 0);
+    camera.position.set(6, 3.5, 9);
+    camera.lookAt(0, 3, 0);
 
     addLights(scene);
     makeOrbitLike(camera, canvas);
 
     // Floor
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 20),
+      new THREE.PlaneGeometry(12, 12),
       new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.85 })
     );
     floor.rotation.x = -Math.PI / 2;
