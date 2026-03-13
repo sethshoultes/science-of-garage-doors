@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 3 — New Content Sections</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600;700&family=Source+Sans+Pro:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #0c0c0e;
+  --surface: #161619;
+  --surface2: #1e1e22;
+  --border: #2a2a30;
+  --accent: #ff6b2b;
+  --accent2: #ffa733;
+  --accent3: #22d3ee;
+  --text: #e8e6e3;
+  --text2: #9a9894;
+  --danger: #ef4444;
+  --success: #22c55e;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Source Sans Pro', sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* NAV */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(12,12,14,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1rem; overflow-x: auto; white-space: nowrap;
+}
+.nav-inner { display: flex; gap: 0; max-width: 1400px; margin: 0 auto; }
+.nav a {
+  display: inline-block; padding: 1rem 1.25rem; color: var(--text2);
+  text-decoration: none; font-family: 'Oswald', sans-serif; font-size: 0.85rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border-bottom: 2px solid transparent; transition: all 0.3s;
+}
+.nav a:hover, .nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* SECTIONS */
+.section { max-width: 1400px; margin: 0 auto; padding: 4rem 2rem; }
+.section-header { margin-bottom: 3rem; }
+.section-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent);
+  letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 0.5rem;
+}
+.section-title {
+  font-family: 'Oswald', sans-serif; font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+/* CANVAS */
+.canvas-wrap {
+  position: relative; width: 100%; height: 500px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; margin-bottom: 2rem;
+}
+.canvas-wrap canvas { width: 100% !important; height: 100% !important; }
+.canvas-label {
+  position: absolute; bottom: 1rem; left: 1rem;
+  background: rgba(12,12,14,0.85); padding: 0.4rem 0.8rem; border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  color: var(--text2); letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none;
+}
+.controls-bar { position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.5rem; z-index: 5; }
+.ctrl-btn {
+  background: rgba(12,12,14,0.85); border: 1px solid var(--border); color: var(--text);
+  padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.05em; transition: all 0.2s;
+}
+.ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ctrl-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* INFO GRID */
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+.info-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 1.5rem; transition: border-color 0.3s;
+}
+.info-card:hover { border-color: var(--accent); }
+.info-card h3 {
+  font-family: 'Oswald', sans-serif; font-size: 1.1rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--accent); margin-bottom: 0.75rem;
+}
+.info-card p { color: var(--text2); font-size: 0.95rem; }
+
+/* SPECS TABLE */
+.specs-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+.specs-table th, .specs-table td { padding: 0.75rem 1rem; border: 1px solid var(--border); text-align: left; }
+.specs-table th {
+  background: var(--surface2); font-family: 'Oswald', sans-serif; text-transform: uppercase;
+  letter-spacing: 0.05em; font-weight: 600; color: var(--accent); font-size: 0.8rem;
+}
+.specs-table td { color: var(--text2); }
+.specs-table tr:hover td { background: rgba(255,107,43,0.05); }
+
+/* READOUT */
+.readout { display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1.5rem 0; }
+.readout-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1rem 1.25rem; min-width: 140px;
+}
+.readout-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.15em;
+}
+.readout-value {
+  font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 600;
+  color: var(--accent); margin-top: 0.25rem;
+}
+.readout-unit { font-size: 0.75rem; color: var(--text2); font-weight: 400; }
+
+/* SLIDER */
+.slider-group { margin: 1rem 0; }
+.slider-group label {
+  display: block; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+  color: var(--text2); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;
+}
+input[type="range"] {
+  -webkit-appearance: none; width: 100%; height: 4px;
+  background: var(--border); border-radius: 2px; outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px;
+  background: var(--accent); border-radius: 50%; cursor: pointer;
+}
+
+/* WARNING / TIP */
+.warning-box {
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+  border-left: 4px solid var(--danger); border-radius: 0 8px 8px 0; padding: 1.5rem; margin: 2rem 0;
+}
+.warning-box h4 { font-family: 'Oswald', sans-serif; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.warning-box p { color: var(--text2); font-size: 0.9rem; }
+
+.tip-box {
+  background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.2);
+  border-left: 4px solid var(--accent3); border-radius: 0 8px 8px 0; padding: 1.5rem; margin: 2rem 0;
+}
+.tip-box h4 { font-family: 'Oswald', sans-serif; color: var(--accent3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.tip-box p { color: var(--text2); font-size: 0.9rem; }
+
+/* DIVIDER */
+.divider { height: 1px; background: var(--border); margin: 4rem 0; }
+
+/* FOOTER */
+.footer { text-align: center; padding: 3rem 2rem; color: var(--text2); font-size: 0.8rem; border-top: 1px solid var(--border); }
+
+/* FLOWCHART */
+.flowchart-wrap {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 2rem; margin-bottom: 2rem; min-height: 500px; position: relative; overflow: auto;
+}
+.fc-node {
+  position: absolute; padding: 0.8rem 1.2rem; border-radius: 8px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; text-align: center;
+  transition: all 0.3s; max-width: 200px; line-height: 1.4; z-index: 2;
+}
+.fc-node.symptom {
+  background: var(--accent); color: #fff; border: 2px solid var(--accent);
+}
+.fc-node.question {
+  background: var(--surface2); color: var(--text); border: 2px solid var(--border);
+}
+.fc-node.fix {
+  background: rgba(34,197,94,0.15); color: var(--success); border: 2px solid var(--success);
+}
+.fc-node:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,107,43,0.2); }
+.fc-node.active { border-color: var(--accent); box-shadow: 0 0 25px rgba(255,107,43,0.3); }
+.fc-node.dimmed { opacity: 0.25; pointer-events: none; }
+.fc-svg {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+}
+.fc-svg line { stroke: var(--border); stroke-width: 2; fill: none; transition: stroke 0.3s, stroke-width 0.3s; }
+.fc-svg .path-active { stroke: var(--accent); stroke-width: 3; }
+.fc-reset-btn { position: absolute; top: 1rem; right: 1rem; z-index: 5; }
+
+/* COMPARISON CARDS */
+.comparison-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem; margin-top: 2rem;
+}
+.comparison-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1.5rem; transition: border-color 0.3s;
+}
+.comparison-card:hover { border-color: var(--accent); }
+.comparison-card h3 {
+  font-family: 'Oswald', sans-serif; font-size: 1.1rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--accent); margin-bottom: 0.5rem;
+}
+.comparison-card .card-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--accent3);
+  text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.75rem;
+}
+.comparison-card p { color: var(--text2); font-size: 0.9rem; }
+.comparison-card ul { color: var(--text2); font-size: 0.9rem; padding-left: 1.2rem; margin-top: 0.5rem; }
+.comparison-card li { margin-bottom: 0.3rem; }
+
+@media (max-width: 768px) {
+  .section { padding: 2rem 1rem; }
+  .canvas-wrap { height: 350px; }
+  .info-grid, .comparison-grid { grid-template-columns: 1fr; }
+  .flowchart-wrap { min-height: 400px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-inner">
+    <a href="#extension-springs">Extension Springs</a>
+    <a href="#jackshaft">Jackshaft</a>
+    <a href="#battery-dc">Battery &amp; DC</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+    <a href="#safety-systems">Safety Systems</a>
+    <a href="#commercial-vs-residential">Commercial vs Residential</a>
+  </div>
+</div>
+
+<!-- SECTION 1: EXTENSION SPRINGS -->
+<div class="section" id="extension-springs">
+  <div class="section-header">
+    <div class="section-tag">07 / Spring Physics</div>
+    <div class="section-title">Extension Spring Systems</div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="extSpringCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn" onclick="toggleExtDoor()">Open / Close</button>
+      <button class="ctrl-btn" onclick="toggleSafetyCable()">Safety Cable</button>
+    </div>
+    <div class="canvas-label">Interactive — Drag to orbit, click Open/Close</div>
+  </div>
+
+  <div class="readout" id="extReadout">
+    <div class="readout-item">
+      <div class="readout-label">Spring Extension</div>
+      <div class="readout-value" id="extLengthVal">0<span class="readout-unit"> in</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Spring Force (F=kx)</div>
+      <div class="readout-value" id="extForceVal">0<span class="readout-unit"> lbs</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Door Position</div>
+      <div class="readout-value" id="extPosVal">0<span class="readout-unit">%</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Force Imbalance</div>
+      <div class="readout-value" id="extImbalVal">0<span class="readout-unit"> lbs</span></div>
+    </div>
+  </div>
+
+  <div class="slider-group">
+    <label>Spring Rate (k): <span id="extKDisplay">50</span> lbs/in</label>
+    <input type="range" id="extKSlider" min="20" max="100" value="50">
+  </div>
+
+  <div class="warning-box">
+    <h4>Extreme Danger — Extension Springs</h4>
+    <p>Extension springs under tension store lethal energy. Unlike torsion springs (contained on a shaft), a broken extension spring becomes a high-velocity projectile if no safety cable is installed. Safety cables running through the spring center are mandatory — they capture the spring fragments if it breaks. Never stand in line with an extension spring under tension.</p>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Linear Force: F = kx</h3>
+      <p>Extension springs follow Hooke's Law linearly: Force = spring constant (k) times extension distance (x). This produces a force curve that increases linearly with door travel. Compare with torsion springs where torque = spring constant times angular displacement. The linear characteristic creates an inherent mismatch with the door's non-linear weight curve at partial-open positions.</p>
+    </div>
+    <div class="info-card">
+      <h3>Pulley &amp; Cable Routing</h3>
+      <p>The cable routes from the bottom bracket of the door, up through a pulley at the horizontal track junction, then back to the spring's movable end. This 2:1 pulley arrangement halves the required spring force but doubles the travel distance. As the door opens, the spring stretches; as it closes, the spring contracts and stores energy for the next opening cycle.</p>
+    </div>
+    <div class="info-card">
+      <h3>Why Torsion Replaced Them</h3>
+      <p>Torsion springs won for three reasons: (1) More uniform counterbalance across door travel due to cable drum geometry, (2) Safer failure mode — a broken torsion spring unwinds on its shaft rather than launching as a projectile, (3) Higher cycle life — torsion wire experiences less stress concentration than extension spring hooks. Extension springs remain on older and budget installations.</p>
+    </div>
+    <div class="info-card">
+      <h3>Safety Cable System</h3>
+      <p>A steel cable threads through the hollow center of the extension spring coil, anchored at both ends to the track support structure. If the spring breaks, the cable contains the broken halves, preventing them from becoming projectiles. This simple $5 safety device prevents the most catastrophic extension spring failure mode. Many older installations lack safety cables — a critical retrofit item.</p>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SECTION 2: JACKSHAFT / WALL-MOUNT -->
+<div class="section" id="jackshaft">
+  <div class="section-header">
+    <div class="section-tag">08 / Drive Systems</div>
+    <div class="section-title">Jackshaft / Wall-Mount Openers</div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="jackshaftCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn" onclick="toggleJackDoor()">Open / Close</button>
+      <button class="ctrl-btn" onclick="toggleJackExplode()">Exploded View</button>
+    </div>
+    <div class="canvas-label">Interactive — Motor drives torsion shaft directly</div>
+  </div>
+
+  <div class="readout">
+    <div class="readout-item">
+      <div class="readout-label">Motor RPM</div>
+      <div class="readout-value" id="jackRpmVal">0<span class="readout-unit"> rpm</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Shaft Torque</div>
+      <div class="readout-value" id="jackTorqueVal">0<span class="readout-unit"> ft-lb</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Door Position</div>
+      <div class="readout-value" id="jackPosVal">0<span class="readout-unit">%</span></div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>How It Works</h3>
+      <p>The motor mounts on the wall beside the torsion spring shaft, driving it directly through a gear reduction unit. The motor's worm gear meshes with a spur gear on the torsion shaft, rotating the shaft to wind/unwind the springs and move the door via the existing cable drum system. No ceiling rail, no trolley, no chain or belt needed.</p>
+    </div>
+    <div class="info-card">
+      <h3>No Ceiling Rail</h3>
+      <p>By driving the torsion shaft directly, jackshaft openers eliminate the entire ceiling-mounted rail assembly. This frees up overhead space for storage, high-lift track configurations, or cathedral ceilings where a traditional rail cannot be mounted. The entire mechanism lives at the wall above the door opening.</p>
+    </div>
+    <div class="info-card">
+      <h3>Use Cases</h3>
+      <p><strong style="color:var(--success)">High ceilings:</strong> No rail means no ceiling clearance issues. <strong style="color:var(--accent3)">Storage:</strong> Full ceiling available for overhead racks. <strong style="color:var(--accent2)">Multi-door:</strong> One motor can potentially drive two single-car doors via a shared shaft. Best known model: LiftMaster 8500W (Wi-Fi enabled wall-mount).</p>
+    </div>
+    <div class="info-card">
+      <h3>Pros &amp; Cons</h3>
+      <p><strong style="color:var(--success)">Pros:</strong> Space savings, quiet DC motor, battery backup capable, no rail vibration, clean installation, works with high-lift tracks.<br><br><strong style="color:var(--danger)">Cons:</strong> Higher cost ($350-$500+), requires torsion spring system (not compatible with extension springs), limited to doors under 180 sq ft typically.</p>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SECTION 3: BATTERY BACKUP & DC MOTORS -->
+<div class="section" id="battery-dc">
+  <div class="section-header">
+    <div class="section-tag">09 / Electromechanical</div>
+    <div class="section-title">Battery Backup &amp; DC Motors</div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="dcMotorCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn active" onclick="showMotorType('ac')">AC Motor</button>
+      <button class="ctrl-btn" onclick="showMotorType('dc')">DC Motor</button>
+      <button class="ctrl-btn" onclick="toggleMotorSpin()">Run Motor</button>
+    </div>
+    <div class="canvas-label">Interactive — Compare AC induction vs DC permanent magnet</div>
+  </div>
+
+  <div class="readout">
+    <div class="readout-item">
+      <div class="readout-label">Motor Type</div>
+      <div class="readout-value" id="motorTypeVal" style="font-size:1rem;">AC Induction</div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Speed</div>
+      <div class="readout-value" id="motorSpeedVal">1725<span class="readout-unit"> rpm</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Power Source</div>
+      <div class="readout-value" id="motorPowerVal" style="font-size:1rem;">120V AC</div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Variable Speed</div>
+      <div class="readout-value" id="motorVarVal" style="font-size:1rem;">No</div>
+    </div>
+  </div>
+
+  <table class="specs-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>AC Induction Motor</th>
+        <th>DC Motor (Permanent Magnet)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Speed Control</td><td>Fixed (on/off)</td><td>Variable (PWM)</td></tr>
+      <tr><td>Soft Start/Stop</td><td>Requires extra circuit</td><td>Native via controller</td></tr>
+      <tr><td>Battery Backup</td><td>Requires inverter</td><td>Direct from battery</td></tr>
+      <tr><td>Typical Speed</td><td>1725 RPM (4-pole)</td><td>500-3000 RPM (adjustable)</td></tr>
+      <tr><td>Starting Current</td><td>6-8A surge</td><td>2-4A (soft start)</td></tr>
+      <tr><td>Noise Level</td><td>Louder (60 Hz hum)</td><td>Quieter (no AC buzz)</td></tr>
+      <tr><td>Cost</td><td>Lower ($120-200)</td><td>Higher ($200-350)</td></tr>
+      <tr><td>Lifespan</td><td>15-20 years</td><td>12-18 years (brush wear)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>AC Induction Motor</h3>
+      <p>Traditional garage door motors use AC induction: a rotating magnetic field from stator windings induces current in the squirrel-cage rotor, creating torque. Speed is fixed by line frequency (60 Hz = 1725 RPM for 4-pole). Simple, rugged, cheap — but no speed control, harsh start/stop, and cannot run from a DC battery without an expensive inverter.</p>
+    </div>
+    <div class="info-card">
+      <h3>DC Permanent Magnet Motor</h3>
+      <p>Modern openers use DC motors with permanent magnets on the stator and wound armature. Speed is controlled by varying input voltage via PWM (Pulse Width Modulation). This enables soft start (ramp up over 1-2 seconds), soft stop (decelerate before limits), and variable speed throughout travel. Runs directly from a 12V/24V battery.</p>
+    </div>
+    <div class="info-card">
+      <h3>Battery Backup System</h3>
+      <p>A sealed lead-acid or lithium battery (typically 12V, 5-7Ah) provides 20-50 open/close cycles during power outages. An automatic transfer switch detects power loss and seamlessly switches to battery. The DC motor runs at reduced speed on battery to conserve energy. The battery charges continuously when AC power is available via a trickle charger circuit.</p>
+    </div>
+    <div class="info-card">
+      <h3>Variable Speed Benefits</h3>
+      <p>DC PWM control enables: (1) Slow start reduces mechanical shock on door hardware, (2) Full speed mid-travel for fast operation, (3) Slow approach to limits reduces impact noise and extends limit switch life, (4) Adjustable overall speed via settings. The speed profile is programmable — S-curve acceleration is common in premium models.</p>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h4>Pro Tip — Battery Maintenance</h4>
+    <p>Backup batteries have a 3-5 year lifespan regardless of use. The opener typically has a battery status LED. When the battery fails, the opener still works on AC power but loses backup capability. Replace proactively — a dead battery during a power outage means manually lifting a potentially 200+ lb door. Most use standard 12V 5Ah SLA batteries available at any battery retailer.</p>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SECTION 4: TROUBLESHOOTING FLOWCHART -->
+<div class="section" id="troubleshooting">
+  <div class="section-header">
+    <div class="section-tag">10 / Diagnostics</div>
+    <div class="section-title">Interactive Troubleshooting</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">Click a symptom to begin diagnosis. Follow the highlighted path through diagnostic steps to find the fix. Click "Reset" to start over.</p>
+
+  <div class="flowchart-wrap" id="flowchartWrap" style="height:700px;">
+    <button class="ctrl-btn fc-reset-btn" onclick="resetFlowchart()">Reset</button>
+    <svg class="fc-svg" id="fcSvg"></svg>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Systematic Approach</h3>
+      <p>Professional technicians use a systematic approach: identify the symptom, isolate the subsystem (mechanical, electrical, electronic), test the simplest/cheapest cause first, then work toward complex causes. Most garage door problems fall into 5 categories: springs, tracks/rollers, opener/motor, sensors, and remotes/controls.</p>
+    </div>
+    <div class="info-card">
+      <h3>Most Common Issues</h3>
+      <p>80% of service calls involve: broken springs (door won't open or feels very heavy), misaligned safety sensors (door reverses immediately), dead remote batteries, stripped gear in opener (motor runs but door doesn't move), and off-track rollers (door binds or jams). Each has a distinct diagnostic signature.</p>
+    </div>
+    <div class="info-card">
+      <h3>When to Call a Pro</h3>
+      <p>DIY-safe: remote battery replacement, sensor alignment, lubrication, limit switch adjustment. <strong style="color:var(--danger)">Call a professional for:</strong> spring replacement (lethal tension), cable replacement (under spring tension), off-track doors (stored energy risk), unusual noises from the spring system, and any repair requiring winding bars.</p>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SECTION 5: SAFETY SYSTEMS DEEP DIVE -->
+<div class="section" id="safety-systems">
+  <div class="section-header">
+    <div class="section-tag">11 / Safety Engineering</div>
+    <div class="section-title">Safety Systems Deep Dive</div>
+  </div>
+
+  <div class="canvas-wrap" style="height:550px;">
+    <canvas id="safetyCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn" onclick="toggleObstruction()">Add Obstruction</button>
+      <button class="ctrl-btn" onclick="toggleSafetyDoor()">Close Door</button>
+      <button class="ctrl-btn" onclick="toggleForceDemo()">Force Test</button>
+    </div>
+    <div class="canvas-label">Interactive — Test photoelectric and force-sensing safety</div>
+  </div>
+
+  <div class="readout">
+    <div class="readout-item">
+      <div class="readout-label">IR Beam</div>
+      <div class="readout-value" id="irBeamVal" style="color:var(--success);">CLEAR</div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Motor Force</div>
+      <div class="readout-value" id="motorForceVal">0<span class="readout-unit"> lb-ft</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Force Limit</div>
+      <div class="readout-value" id="forceLimitVal">15<span class="readout-unit"> lb-ft</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Status</div>
+      <div class="readout-value" id="safetyStatusVal" style="font-size:1rem;color:var(--success);">SAFE</div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>UL 325 Standard</h3>
+      <p>UL 325 (Underwriters Laboratories) mandates two independent entrapment protection systems for all residential garage door openers sold in the US since 1993. Both systems must function for the opener to operate in automatic close mode. Failure of either system must prevent automatic closing — the door can only be closed by holding the wall button with line-of-sight to the door.</p>
+    </div>
+    <div class="info-card">
+      <h3>Photoelectric Sensors</h3>
+      <p>Two sensors mounted 6" above the floor on each side of the door opening. The sending unit emits a modulated infrared beam (not a simple LED — it's pulsed at a specific frequency to reject ambient light interference). The receiving unit detects this modulated signal. If the beam is broken during closing, the opener immediately reverses. LED indicators show alignment status.</p>
+    </div>
+    <div class="info-card">
+      <h3>Mechanical Force Sensing</h3>
+      <p>The opener monitors motor current draw during closing. If the door contacts an obstruction, resistance increases, motor current spikes above the force threshold (adjustable via the "close force" knob). When current exceeds the threshold (equivalent to approximately 15 lb-ft at the door bottom edge), the motor reverses. This is the backup if photoelectric sensors fail.</p>
+    </div>
+    <div class="info-card">
+      <h3>Manual Release (Red Cord)</h3>
+      <p>The red emergency release handle disconnects the trolley from the drive carriage via a spring-loaded lever. Pulling down and back on the cord compresses a spring latch, disengaging the trolley. The door can then be operated manually. Re-engagement is automatic: run the motor, and the carriage reconnects with the trolley. Essential during power outages and critical for fire egress.</p>
+    </div>
+  </div>
+
+  <div class="warning-box">
+    <h4>Never Disable Safety Sensors</h4>
+    <p>Bypassing photoelectric sensors is illegal and potentially lethal. A closing garage door exerts 200-400 lbs of force — enough to crush a child or pet. If sensors are misaligned (blinking LED), realign them rather than disconnecting. If sensor wires are damaged, replace them. The 30 seconds of inconvenience from a tripping sensor is infinitely preferable to the alternative.</p>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- SECTION 6: COMMERCIAL VS RESIDENTIAL -->
+<div class="section" id="commercial-vs-residential">
+  <div class="section-header">
+    <div class="section-tag">12 / Industry</div>
+    <div class="section-title">Commercial vs. Residential</div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="commercialCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn active" onclick="showCommType('sectional')">Sectional</button>
+      <button class="ctrl-btn" onclick="showCommType('rolling')">Rolling Steel</button>
+      <button class="ctrl-btn" onclick="showCommType('highLift')">High Lift</button>
+    </div>
+    <div class="canvas-label">Interactive — Compare commercial door types</div>
+  </div>
+
+  <table class="specs-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Residential</th>
+        <th>Commercial</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Door Types</td><td>Sectional (4-5 panels)</td><td>Sectional, rolling steel, fire-rated, high-speed</td></tr>
+      <tr><td>Spring Cycle Rating</td><td>10,000-25,000</td><td>50,000-100,000+</td></tr>
+      <tr><td>Motor Power</td><td>1/2-1 HP, single phase</td><td>1-5 HP, 3-phase available</td></tr>
+      <tr><td>Operator Type</td><td>Trolley (chain/belt/screw)</td><td>Hoist, trolley, jackshaft</td></tr>
+      <tr><td>Door Weight</td><td>100-300 lbs</td><td>300-3,000+ lbs</td></tr>
+      <tr><td>Width Range</td><td>8-18 ft</td><td>10-40+ ft</td></tr>
+      <tr><td>Fire Rating</td><td>Not typically rated</td><td>Up to 4-hour fire rating</td></tr>
+      <tr><td>Controls</td><td>Remote + wall button</td><td>Key switch, BMS, timer, card reader</td></tr>
+      <tr><td>Price Range</td><td>$800-$3,000 installed</td><td>$3,000-$25,000+ installed</td></tr>
+    </tbody>
+  </table>
+
+  <div class="comparison-grid">
+    <div class="comparison-card">
+      <div class="card-tag">Commercial</div>
+      <h3>Hoist Operators</h3>
+      <p>Heavy-duty operators for commercial sectional doors. Mount at the wall (like residential jackshaft) but with significantly more torque — 1-5 HP motors with industrial gear reduction. Often include:</p>
+      <ul>
+        <li>3-phase motor option for larger doors</li>
+        <li>Chain hoist manual backup</li>
+        <li>Adjustable speed via VFD</li>
+        <li>Industrial limit switches</li>
+      </ul>
+    </div>
+    <div class="comparison-card">
+      <div class="card-tag">Commercial</div>
+      <h3>Rolling Steel Doors</h3>
+      <p>No panels or tracks — the door is a curtain of interlocking steel slats that rolls up onto a barrel above the opening. Ideal for maximum headroom clearance and security.</p>
+      <ul>
+        <li>Self-storing: no ceiling track needed</li>
+        <li>Wind-load rated models available</li>
+        <li>Security grilles for retail</li>
+        <li>Counter-balance via barrel spring</li>
+      </ul>
+    </div>
+    <div class="comparison-card">
+      <div class="card-tag">Commercial</div>
+      <h3>Fire-Rated Doors</h3>
+      <p>Required at openings between a garage and occupied building space, or between fire-separated areas. Must close automatically upon fire alarm activation.</p>
+      <ul>
+        <li>UL labeled (1-4 hour ratings)</li>
+        <li>Fusible link auto-close mechanism</li>
+        <li>Connected to building fire alarm</li>
+        <li>Annual inspection required</li>
+      </ul>
+    </div>
+    <div class="comparison-card">
+      <div class="card-tag">Commercial</div>
+      <h3>High-Cycle Springs</h3>
+      <p>Commercial springs use premium oil-tempered wire (ASTM A229 Grade II) wound to tighter tolerances. Rated 50,000 to 100,000+ cycles vs. residential 10,000.</p>
+      <ul>
+        <li>Larger wire diameter reduces stress %</li>
+        <li>Shot-peened for fatigue resistance</li>
+        <li>Often use dual spring on each side</li>
+        <li>10-20 year lifespan at high usage</li>
+      </ul>
+    </div>
+    <div class="comparison-card">
+      <div class="card-tag">Commercial</div>
+      <h3>3-Phase Motors</h3>
+      <p>Large commercial doors use 3-phase power (208V/480V) for higher efficiency and smoother operation. Three overlapping AC sine waves produce a naturally rotating magnetic field — no start capacitor needed.</p>
+      <ul>
+        <li>Higher power-to-weight ratio</li>
+        <li>Self-starting (no capacitor)</li>
+        <li>Longer motor lifespan</li>
+        <li>VFD compatible for speed control</li>
+      </ul>
+    </div>
+    <div class="comparison-card">
+      <div class="card-tag">Commercial</div>
+      <h3>Control Systems</h3>
+      <p>Commercial door operators integrate with building management systems (BMS) and offer advanced control options beyond simple remote/button activation.</p>
+      <ul>
+        <li>Timer-based auto-close</li>
+        <li>Card/key fob access control</li>
+        <li>BMS integration (BACnet/Modbus)</li>
+        <li>Vehicle detection loops</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">The Science of Garage Doors — Phase 3</p>
+  <p>New Content Sections — Extension Springs, Jackshaft, DC Motors, Troubleshooting, Safety, Commercial</p>
+</div>
+
+<!-- THREE.JS SCENES -->
+<script>
+// UTILITY
+function makeRenderer(canvas) {
+  var r = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  r.setClearColor(0x0c0c0e, 1);
+  r.shadowMap.enabled = true;
+  return r;
+}
+
+function fitRenderer(renderer, canvas) {
+  var w = canvas.parentElement.clientWidth;
+  var h = canvas.parentElement.clientHeight;
+  renderer.setSize(w, h, false);
+  return { w: w, h: h };
+}
+
+// SHARED MATERIALS
+var matOrange = new THREE.MeshStandardMaterial({ color: 0xff6b2b, metalness: 0.4, roughness: 0.5 });
+var matSteel = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.85, roughness: 0.2 });
+var matDarkSteel = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9, roughness: 0.15 });
+var matWire = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.7, roughness: 0.3 });
+var matRubber = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.05, roughness: 0.95 });
+var matGreen = new THREE.MeshStandardMaterial({ color: 0x22c55e, metalness: 0.3, roughness: 0.5 });
+var matCyan = new THREE.MeshStandardMaterial({ color: 0x22d3ee, metalness: 0.3, roughness: 0.5, emissive: 0x22d3ee, emissiveIntensity: 0.3 });
+var matRed = new THREE.MeshStandardMaterial({ color: 0xff4444, metalness: 0.8, roughness: 0.2 });
+var matCopper = new THREE.MeshStandardMaterial({ color: 0xdd8833, metalness: 0.8, roughness: 0.3 });
+var matBlue = new THREE.MeshStandardMaterial({ color: 0x2255aa, metalness: 0.3, roughness: 0.6 });
+
+function addLights(scene) {
+  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  var d = new THREE.DirectionalLight(0xffffff, 0.8);
+  d.position.set(5, 8, 6);
+  d.castShadow = true;
+  scene.add(d);
+  var fill = new THREE.DirectionalLight(0x8888ff, 0.2);
+  fill.position.set(-3, 2, -4);
+  scene.add(fill);
+}
+
+function makeOrbitLike(camera, canvas) {
+  var isDragging = false, prevX = 0, prevY = 0;
+  var rotY = 0.3, rotX = 0.3;
+  var radius = camera.position.length();
+  canvas.addEventListener('pointerdown', function(e) { isDragging = true; prevX = e.clientX; prevY = e.clientY; });
+  canvas.addEventListener('pointermove', function(e) {
+    if (!isDragging) return;
+    rotY += (e.clientX - prevX) * 0.005;
+    rotX += (e.clientY - prevY) * 0.005;
+    rotX = Math.max(-1.2, Math.min(1.2, rotX));
+    prevX = e.clientX; prevY = e.clientY;
+    camera.position.x = radius * Math.sin(rotY) * Math.cos(rotX);
+    camera.position.y = radius * Math.sin(rotX);
+    camera.position.z = radius * Math.cos(rotY) * Math.cos(rotX);
+    camera.lookAt(0, 0, 0);
+  });
+  canvas.addEventListener('pointerup', function() { isDragging = false; });
+  canvas.addEventListener('pointerleave', function() { isDragging = false; });
+}
+
+// Helper to safely update a readout element
+function setReadout(id, value, unit) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (unit) {
+    el.textContent = '';
+    el.appendChild(document.createTextNode(value));
+    var span = document.createElement('span');
+    span.className = 'readout-unit';
+    span.textContent = unit;
+    el.appendChild(span);
+  } else {
+    el.textContent = value;
+  }
+}
+
+
+// ===============================
+// SCENE 1: EXTENSION SPRINGS
+// ===============================
+var extDoorProgress = 0, extDoorTarget = 0;
+var safetyCableVisible = true;
+
+(function() {
+  var canvas = document.getElementById('extSpringCanvas');
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0c0c0e, 15, 30);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  camera.position.set(5, 3, 8);
+  camera.lookAt(0, 2, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  // Floor
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Door frame
+  var frameMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.6 });
+  var lp = new THREE.Mesh(new THREE.BoxGeometry(0.15, 5, 0.15), frameMat);
+  lp.position.set(-2.5, 2.5, 0); scene.add(lp);
+  var rp = lp.clone(); rp.position.set(2.5, 2.5, 0); scene.add(rp);
+  var hdr = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.15, 0.15), frameMat);
+  hdr.position.set(0, 5.05, 0); scene.add(hdr);
+
+  // Horizontal tracks
+  var trackR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 8), frameMat);
+  trackR.position.set(2.4, 5, -4); scene.add(trackR);
+  var trackL = trackR.clone(); trackL.position.set(-2.4, 5, -4); scene.add(trackL);
+
+  // Track angle supports
+  var sides = [-1, 1];
+  sides.forEach(function(s) {
+    var sup1 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.6, 0.05), frameMat);
+    sup1.position.set(s * 2.4, 5.3, -2); scene.add(sup1);
+    var sup2 = sup1.clone(); sup2.position.z = -6; scene.add(sup2);
+  });
+
+  // Door panels
+  var panels = [];
+  var panelCount = 4, panelH = 1.1, doorW = 4.8;
+
+  for (var i = 0; i < panelCount; i++) {
+    var pg = new THREE.Group();
+    var pMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(doorW, panelH, 0.1),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.1, roughness: 0.7 })
+    );
+    pMesh.castShadow = true;
+    var line = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.01, 0.02, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0xbbbbbb, metalness: 0.1, roughness: 0.8 }));
+    line.position.y = panelH / 2 - 0.02;
+    pg.add(pMesh); pg.add(line);
+    pg.position.set(0, panelH / 2 + i * panelH, 0);
+    scene.add(pg);
+    panels.push(pg);
+  }
+
+  // Pulleys at track junctions
+  sides.forEach(function(s) {
+    var pulley = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.03, 8, 16), matSteel);
+    pulley.position.set(s * 2.6, 4.9, 0);
+    pulley.rotation.y = Math.PI / 2;
+    scene.add(pulley);
+    // Anchor plate
+    var anchor = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.15, 0.15), matDarkSteel);
+    anchor.position.set(s * 2.6, 4.9, -7); scene.add(anchor);
+  });
+
+  // Safety cables
+  var safetyCables = [];
+  sides.forEach(function(s) {
+    var scGeo = new THREE.CylinderGeometry(0.008, 0.008, 7, 4);
+    var sc = new THREE.Mesh(scGeo, new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.6, roughness: 0.4 }));
+    sc.rotation.x = Math.PI / 2;
+    sc.position.set(s * 2.6, 4.9, -3.5);
+    scene.add(sc);
+    safetyCables.push(sc);
+  });
+
+  // Build extension spring geometry
+  var springMeshes = [];
+  function buildExtSprings(stretch) {
+    springMeshes.forEach(function(m) { scene.remove(m); });
+    springMeshes = [];
+    sides.forEach(function(s) {
+      var restLen = 2.5;
+      var len = restLen + stretch * 3.5;
+      var pts = [];
+      var coils = 25;
+      for (var t = 0; t < Math.PI * 2 * coils; t += 0.15) {
+        var progress = t / (Math.PI * 2 * coils);
+        var radius = 0.12;
+        pts.push(new THREE.Vector3(
+          s * 2.6,
+          4.9 + Math.cos(t) * radius,
+          -7 + progress * len + Math.sin(t) * radius * 0.3
+        ));
+      }
+      var curve = new THREE.CatmullRomCurve3(pts);
+      var springMat = new THREE.MeshStandardMaterial({ color: 0xff4444, metalness: 0.8, roughness: 0.2 });
+      springMat.color.setRGB(Math.min(1, 0.6 + stretch * 0.4), Math.max(0, 0.3 - stretch * 0.3), 0.1);
+      springMat.emissive.setRGB(stretch * 0.15, 0, 0);
+      var sm = new THREE.Mesh(new THREE.TubeGeometry(curve, 150, 0.02, 6, false), springMat);
+      scene.add(sm);
+      springMeshes.push(sm);
+    });
+  }
+
+  // Cables from spring to bottom bracket
+  var cableMeshes = [];
+  function buildCables(t) {
+    cableMeshes.forEach(function(m) { scene.remove(m); });
+    cableMeshes = [];
+    sides.forEach(function(s) {
+      var bottomY = 0.3 + t * 4.2;
+      var pts = [
+        new THREE.Vector3(s * 2.6, 4.9, -7 + 2.5 + t * 3.5),
+        new THREE.Vector3(s * 2.6, 4.9, 0),
+        new THREE.Vector3(s * 2.3, bottomY, 0.05)
+      ];
+      var curve = new THREE.CatmullRomCurve3(pts);
+      var cMesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 30, 0.01, 4, false), matWire);
+      scene.add(cMesh);
+      cableMeshes.push(cMesh);
+    });
+  }
+
+  buildExtSprings(0);
+  buildCables(0);
+
+  function updateExtDoor(t) {
+    for (var i = 0; i < panelCount; i++) {
+      var panel = panels[i];
+      var panelT = Math.max(0, Math.min(1, (t * panelCount - (panelCount - 1 - i)) * 1.0));
+      if (panelT <= 0) {
+        panel.position.set(0, panelH / 2 + i * panelH, 0);
+        panel.rotation.x = 0;
+      } else if (panelT < 0.5) {
+        var a = panelT * 2;
+        var angle = a * Math.PI / 2;
+        var rad = 1.0;
+        panel.position.set(0, 5 - panelH / 2 + rad * Math.cos(angle) - rad, -rad * Math.sin(angle));
+        panel.rotation.x = -angle;
+      } else {
+        var slide = (panelT - 0.5) * 2;
+        panel.position.set(0, 5 - panelH / 2, -1.0 - slide * 2.5);
+        panel.rotation.x = -Math.PI / 2;
+      }
+    }
+    buildExtSprings(t);
+    buildCables(t);
+
+    var k = parseInt(document.getElementById('extKSlider').value);
+    document.getElementById('extKDisplay').textContent = k;
+    var extension = t * 28;
+    var force = k * (t * 5.6);
+    var doorWeight = 150;
+    var effectiveWeight = doorWeight * (1 - t * 0.3);
+    var imbalance = Math.abs(force - effectiveWeight * 0.5);
+
+    setReadout('extLengthVal', extension.toFixed(1), ' in');
+    setReadout('extForceVal', Math.round(force), ' lbs');
+    setReadout('extPosVal', Math.round(t * 100), '%');
+    setReadout('extImbalVal', Math.round(imbalance), ' lbs');
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dims = fitRenderer(renderer, canvas);
+    camera.aspect = dims.w / dims.h; camera.updateProjectionMatrix();
+    if (Math.abs(extDoorProgress - extDoorTarget) > 0.002) {
+      extDoorProgress += (extDoorTarget - extDoorProgress) * 0.02;
+    }
+    updateExtDoor(extDoorProgress);
+    safetyCables.forEach(function(sc) { sc.visible = safetyCableVisible; });
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+function toggleExtDoor() { extDoorTarget = extDoorTarget < 0.5 ? 1 : 0; }
+function toggleSafetyCable() { safetyCableVisible = !safetyCableVisible; }
+
+
+// ===============================
+// SCENE 2: JACKSHAFT OPENER
+// ===============================
+var jackDoorProgress = 0, jackDoorTarget = 0, jackExploded = false, jackExplodeT = 0;
+
+(function() {
+  var canvas = document.getElementById('jackshaftCanvas');
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0c0c0e, 15, 30);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  camera.position.set(6, 3, 7);
+  camera.lookAt(0, 2, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  // Floor & wall
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  var wall = new THREE.Mesh(new THREE.BoxGeometry(8, 7, 0.2), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 }));
+  wall.position.set(0, 3.5, 0.2); scene.add(wall);
+
+  // Frame
+  var frameMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.6 });
+  var lp = new THREE.Mesh(new THREE.BoxGeometry(0.15, 5, 0.15), frameMat);
+  lp.position.set(-2.5, 2.5, 0); scene.add(lp);
+  var rp = lp.clone(); rp.position.set(2.5, 2.5, 0); scene.add(rp);
+  var hdr = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.15, 0.15), frameMat);
+  hdr.position.set(0, 5.05, 0); scene.add(hdr);
+
+  // Tracks
+  var trackR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 8), frameMat);
+  trackR.position.set(2.4, 5, -4); scene.add(trackR);
+  var trackL = trackR.clone(); trackL.position.set(-2.4, 5, -4); scene.add(trackL);
+
+  // Torsion shaft
+  var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 5.5, 8), matSteel);
+  shaft.rotation.z = Math.PI / 2; shaft.position.set(0, 5.5, 0); scene.add(shaft);
+
+  // Torsion spring
+  var springPts = [];
+  for (var t = 0; t < Math.PI * 20; t += 0.15) {
+    springPts.push(new THREE.Vector3(t * 0.04 - 1.2, 0, Math.sin(t) * 0.08));
+  }
+  var springCurve = new THREE.CatmullRomCurve3(springPts);
+  var springMesh = new THREE.Mesh(new THREE.TubeGeometry(springCurve, 100, 0.015, 8, false), matRed);
+  springMesh.position.set(0, 5.5, 0); scene.add(springMesh);
+
+  // Cable drums
+  var drumL = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.15, 16), matSteel);
+  drumL.rotation.z = Math.PI / 2; drumL.position.set(-2.5, 5.5, 0); scene.add(drumL);
+  var drumR = drumL.clone(); drumR.position.x = 2.5; scene.add(drumR);
+
+  // JACKSHAFT MOTOR UNIT
+  var motorGroup = new THREE.Group();
+  var motorBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.5), matDarkSteel);
+  motorBody.userData.explodeOffset = new THREE.Vector3(-1, 0.5, 1);
+  motorGroup.add(motorBody);
+  var motorCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.4, 12), matCopper);
+  motorCyl.rotation.z = Math.PI / 2;
+  motorCyl.userData.explodeOffset = new THREE.Vector3(-1, 1.5, 0);
+  motorGroup.add(motorCyl);
+  var gearBox = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.4), matOrange);
+  gearBox.position.x = 0.55;
+  gearBox.userData.explodeOffset = new THREE.Vector3(1, 0.5, 1);
+  motorGroup.add(gearBox);
+  var outputGear = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 8, 16), matSteel);
+  outputGear.position.set(0.75, 0, 0); outputGear.rotation.y = Math.PI / 2;
+  motorGroup.add(outputGear);
+  var coupling = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.3, 8), matOrange);
+  coupling.rotation.z = Math.PI / 2; coupling.position.set(0.9, 0, 0);
+  motorGroup.add(coupling);
+  motorGroup.position.set(-3.2, 5.5, 0.3);
+  scene.add(motorGroup);
+
+  // Door panels
+  var panels = [];
+  var panelCount = 5, panelH = 0.9, doorW = 4.8;
+  for (var i = 0; i < panelCount; i++) {
+    var pg = new THREE.Group();
+    var pMesh = new THREE.Mesh(new THREE.BoxGeometry(doorW, panelH, 0.1),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.1, roughness: 0.7 }));
+    pMesh.castShadow = true;
+    var pline = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.01, 0.02, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0xbbbbbb, metalness: 0.1, roughness: 0.8 }));
+    pline.position.y = panelH / 2 - 0.02;
+    pg.add(pMesh); pg.add(pline);
+    pg.position.set(0, panelH / 2 + i * panelH, 0);
+    scene.add(pg);
+    panels.push(pg);
+  }
+
+  var explodables = [motorBody, motorCyl, gearBox];
+
+  function updateJackDoor(t) {
+    for (var i = 0; i < panelCount; i++) {
+      var panel = panels[i];
+      var panelT = Math.max(0, Math.min(1, (t * panelCount - (panelCount - 1 - i)) * 1.0));
+      if (panelT <= 0) {
+        panel.position.set(0, panelH / 2 + i * panelH, 0);
+        panel.rotation.x = 0;
+      } else if (panelT < 0.5) {
+        var a = panelT * 2;
+        var angle = a * Math.PI / 2;
+        var rad = 1.0;
+        panel.position.set(0, 5 - panelH / 2 + rad * Math.cos(angle) - rad, -rad * Math.sin(angle));
+        panel.rotation.x = -angle;
+      } else {
+        var slide = (panelT - 0.5) * 2;
+        panel.position.set(0, 5 - panelH / 2, -1.0 - slide * 2.5);
+        panel.rotation.x = -Math.PI / 2;
+      }
+    }
+    var moving = Math.abs(jackDoorProgress - jackDoorTarget) > 0.01;
+    setReadout('jackRpmVal', moving ? '1725' : '0', ' rpm');
+    setReadout('jackTorqueVal', Math.round((1 - t) * 85), ' ft-lb');
+    setReadout('jackPosVal', Math.round(t * 100), '%');
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dims = fitRenderer(renderer, canvas);
+    camera.aspect = dims.w / dims.h; camera.updateProjectionMatrix();
+
+    if (Math.abs(jackDoorProgress - jackDoorTarget) > 0.002) {
+      jackDoorProgress += (jackDoorTarget - jackDoorProgress) * 0.02;
+      shaft.rotation.x += 0.03 * Math.sign(jackDoorTarget - jackDoorProgress);
+      springMesh.rotation.x += 0.03 * Math.sign(jackDoorTarget - jackDoorProgress);
+      outputGear.rotation.z += 0.1;
+    }
+    updateJackDoor(jackDoorProgress);
+
+    // Explode
+    var targetT = jackExploded ? 1 : 0;
+    jackExplodeT += (targetT - jackExplodeT) * 0.04;
+    explodables.forEach(function(obj) {
+      if (obj.userData.explodeOffset) {
+        var off = obj.userData.explodeOffset;
+        var basePos = obj.userData.basePos || obj.position.clone();
+        if (!obj.userData.basePos) obj.userData.basePos = basePos.clone();
+        obj.position.lerpVectors(basePos, basePos.clone().add(off), jackExplodeT);
+      }
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+function toggleJackDoor() { jackDoorTarget = jackDoorTarget < 0.5 ? 1 : 0; }
+function toggleJackExplode() { jackExploded = !jackExploded; }
+
+
+// ===============================
+// SCENE 3: BATTERY BACKUP & DC MOTORS
+// ===============================
+var currentMotorType = 'ac';
+var dcMotorRunning = false;
+
+(function() {
+  var canvas = document.getElementById('dcMotorCanvas');
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  camera.position.set(4, 2.5, 6);
+  camera.lookAt(0, 0, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  // AC MOTOR GROUP
+  var acGroup = new THREE.Group();
+  var acCasing = new THREE.Mesh(
+    new THREE.CylinderGeometry(1, 1, 1.5, 20),
+    new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.7, roughness: 0.3, transparent: true, opacity: 0.6 })
+  );
+  acGroup.add(acCasing);
+
+  // Stator windings
+  for (var i = 0; i < 6; i++) {
+    var angle = (i / 6) * Math.PI * 2;
+    var coil = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.035, 6, 8), matCopper);
+    coil.position.set(Math.cos(angle) * 0.7, 0, Math.sin(angle) * 0.7);
+    coil.rotation.z = Math.PI / 2;
+    coil.lookAt(0, 0, 0);
+    acGroup.add(coil);
+  }
+
+  // Squirrel cage rotor
+  var acRotor = new THREE.Group();
+  var acRotorCore = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.2, 16), matDarkSteel);
+  acRotor.add(acRotorCore);
+  for (var i = 0; i < 16; i++) {
+    var angle = (i / 16) * Math.PI * 2;
+    var bar = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.3, 4), matSteel);
+    bar.position.set(Math.cos(angle) * 0.28, 0, Math.sin(angle) * 0.28);
+    acRotor.add(bar);
+  }
+  var endRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.02, 6, 16), matSteel);
+  endRing1.rotation.x = Math.PI / 2; endRing1.position.y = 0.65; acRotor.add(endRing1);
+  var endRing2 = endRing1.clone(); endRing2.position.y = -0.65; acRotor.add(endRing2);
+  var acShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5, 8), matSteel);
+  acRotor.add(acShaft);
+  acGroup.add(acRotor);
+
+  // Run capacitor
+  var acCap = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8), matBlue);
+  acCap.position.set(1.3, 0, 0.4); acGroup.add(acCap);
+  scene.add(acGroup);
+
+  // DC MOTOR GROUP
+  var dcGroup = new THREE.Group();
+  dcGroup.visible = false;
+  var dcCasing = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.9, 0.9, 1.4, 20),
+    new THREE.MeshStandardMaterial({ color: 0x333355, metalness: 0.7, roughness: 0.3, transparent: true, opacity: 0.6 })
+  );
+  dcGroup.add(dcCasing);
+
+  // Permanent magnets
+  for (var i = 0; i < 4; i++) {
+    var angle = (i / 4) * Math.PI * 2;
+    var magnet = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 1, 0.08),
+      new THREE.MeshStandardMaterial({ color: i % 2 === 0 ? 0xcc2222 : 0x2222cc, metalness: 0.5, roughness: 0.4 })
+    );
+    magnet.position.set(Math.cos(angle) * 0.72, 0, Math.sin(angle) * 0.72);
+    magnet.lookAt(0, 0, 0);
+    dcGroup.add(magnet);
+  }
+
+  // DC rotor with coils
+  var dcRotor = new THREE.Group();
+  var dcRotorCore = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.1, 12), matDarkSteel);
+  dcRotor.add(dcRotorCore);
+  for (var i = 0; i < 8; i++) {
+    var angle = (i / 8) * Math.PI * 2;
+    var dcoil = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.02, 4, 6), matCopper);
+    dcoil.position.set(Math.cos(angle) * 0.22, 0, Math.sin(angle) * 0.22);
+    dcoil.rotation.z = Math.PI / 2;
+    dcoil.lookAt(0, 0, 0);
+    dcRotor.add(dcoil);
+  }
+  var commutator = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.2, 12), matCopper);
+  commutator.position.y = 0.65; dcRotor.add(commutator);
+  var brush1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.15), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95 }));
+  brush1.position.set(0.12, 0.65, 0); dcRotor.add(brush1);
+  var brush2 = brush1.clone(); brush2.position.x = -0.12; dcRotor.add(brush2);
+  var dcShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5, 8), matSteel);
+  dcRotor.add(dcShaft);
+  dcGroup.add(dcRotor);
+
+  // Battery
+  var battery = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.4),
+    new THREE.MeshStandardMaterial({ color: 0x115511, metalness: 0.3, roughness: 0.6 }));
+  battery.position.set(1.5, -0.5, 0); dcGroup.add(battery);
+  var term1 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.1, 6),
+    new THREE.MeshStandardMaterial({ color: 0xcc0000, metalness: 0.8, roughness: 0.2 }));
+  term1.position.set(1.3, -0.2, 0); dcGroup.add(term1);
+  var term2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.1, 6), matDarkSteel);
+  term2.position.set(1.7, -0.2, 0); dcGroup.add(term2);
+
+  // PWM board
+  var pwmBoard = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.4),
+    new THREE.MeshStandardMaterial({ color: 0x116633, roughness: 0.7 }));
+  pwmBoard.position.set(-1.3, 0.3, 0); dcGroup.add(pwmBoard);
+  scene.add(dcGroup);
+
+  window.showMotorType = function(type) {
+    currentMotorType = type;
+    acGroup.visible = (type === 'ac');
+    dcGroup.visible = (type === 'dc');
+    var btns = canvas.parentElement.querySelectorAll('.ctrl-btn');
+    btns[0].classList.toggle('active', type === 'ac');
+    btns[1].classList.toggle('active', type === 'dc');
+    if (type === 'ac') {
+      setReadout('motorTypeVal', 'AC Induction');
+      setReadout('motorSpeedVal', '1725', ' rpm');
+      setReadout('motorPowerVal', '120V AC');
+      setReadout('motorVarVal', 'No');
+    } else {
+      setReadout('motorTypeVal', 'DC Perm. Magnet');
+      setReadout('motorSpeedVal', '500-3000', ' rpm');
+      setReadout('motorPowerVal', '12-24V DC');
+      setReadout('motorVarVal', 'Yes (PWM)');
+    }
+  };
+
+  window.toggleMotorSpin = function() { dcMotorRunning = !dcMotorRunning; };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dims = fitRenderer(renderer, canvas);
+    camera.aspect = dims.w / dims.h; camera.updateProjectionMatrix();
+    if (dcMotorRunning) {
+      if (currentMotorType === 'ac') { acRotor.rotation.y += 0.12; }
+      else { dcRotor.rotation.y += 0.12; }
+    }
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+
+// ===============================
+// SCENE 4: TROUBLESHOOTING FLOWCHART
+// ===============================
+(function() {
+  var wrap = document.getElementById('flowchartWrap');
+  var svg = document.getElementById('fcSvg');
+
+  var nodes = [
+    { id: 's1', text: "Door Won't Open", x: 30, y: 30, type: 'symptom', children: ['q1'] },
+    { id: 's2', text: 'Door Reverses', x: 220, y: 30, type: 'symptom', children: ['q4'] },
+    { id: 's3', text: 'Motor Runs, No Move', x: 400, y: 30, type: 'symptom', children: ['q6'] },
+    { id: 's4', text: "Remote Won't Work", x: 590, y: 30, type: 'symptom', children: ['q8'] },
+    { id: 's5', text: 'Door is Noisy', x: 770, y: 30, type: 'symptom', children: ['q10'] },
+
+    { id: 'q1', text: 'Is the motor humming?', x: 30, y: 160, type: 'question', children: ['q2', 'q3'] },
+    { id: 'q2', text: 'Manual release — door heavy?', x: 0, y: 290, type: 'question', children: ['f1', 'f2'] },
+    { id: 'q3', text: 'No power? Check breaker', x: 160, y: 290, type: 'question', children: ['f3', 'f10'] },
+
+    { id: 'q4', text: 'Immediately or mid-travel?', x: 220, y: 160, type: 'question', children: ['q5', 'f5'] },
+    { id: 'q5', text: 'Check sensor LEDs solid?', x: 200, y: 290, type: 'question', children: ['f4', 'f5b'] },
+
+    { id: 'q6', text: 'Grinding noise from motor?', x: 400, y: 160, type: 'question', children: ['f6', 'q7'] },
+    { id: 'q7', text: 'Trolley release engaged?', x: 470, y: 290, type: 'question', children: ['f7', 'f8'] },
+
+    { id: 'q8', text: 'Wall button works?', x: 590, y: 160, type: 'question', children: ['q9', 'f3b'] },
+    { id: 'q9', text: 'Replace remote battery', x: 590, y: 290, type: 'question', children: ['f9', 'f11'] },
+
+    { id: 'q10', text: 'Grinding, squealing, rattling?', x: 770, y: 160, type: 'question', children: ['f12', 'f13'] },
+
+    { id: 'f1', text: 'FIX: Broken spring. Call professional.', x: 0, y: 420, type: 'fix', children: [] },
+    { id: 'f2', text: 'FIX: Stripped motor gear. Replace.', x: 140, y: 420, type: 'fix', children: [] },
+    { id: 'f3', text: 'FIX: Restore power / reset GFCI.', x: 130, y: 420, type: 'fix', children: [] },
+    { id: 'f3b', text: 'FIX: Check power / logic board.', x: 690, y: 290, type: 'fix', children: [] },
+    { id: 'f4', text: 'FIX: Clean & align sensors.', x: 170, y: 420, type: 'fix', children: [] },
+    { id: 'f5', text: 'FIX: Adjust close force limit.', x: 340, y: 290, type: 'fix', children: [] },
+    { id: 'f5b', text: 'FIX: Repair sensor wiring.', x: 270, y: 420, type: 'fix', children: [] },
+    { id: 'f6', text: 'FIX: Replace stripped gear kit.', x: 390, y: 290, type: 'fix', children: [] },
+    { id: 'f7', text: 'FIX: Re-engage trolley.', x: 440, y: 420, type: 'fix', children: [] },
+    { id: 'f8', text: 'FIX: Replace chain/belt.', x: 570, y: 420, type: 'fix', children: [] },
+    { id: 'f9', text: 'FIX: New battery fixed it.', x: 540, y: 420, type: 'fix', children: [] },
+    { id: 'f10', text: 'FIX: Replace logic board.', x: 100, y: 420, type: 'fix', children: [] },
+    { id: 'f11', text: 'FIX: Reprogram remote / LED issue.', x: 680, y: 420, type: 'fix', children: [] },
+    { id: 'f12', text: 'FIX: Lubricate rollers & hinges.', x: 750, y: 290, type: 'fix', children: [] },
+    { id: 'f13', text: 'FIX: Tighten hardware / chain.', x: 870, y: 290, type: 'fix', children: [] },
+  ];
+
+  var nodeMap = {};
+  nodes.forEach(function(n) { nodeMap[n.id] = n; });
+
+  // Render nodes as DOM elements
+  nodes.forEach(function(n) {
+    var el = document.createElement('div');
+    el.className = 'fc-node ' + n.type;
+    el.textContent = n.text;
+    el.style.left = n.x + 'px';
+    el.style.top = n.y + 'px';
+    el.id = 'fc-' + n.id;
+    el.onclick = function() { activateNode(n.id); };
+    wrap.appendChild(el);
+  });
+
+  // Draw SVG edges
+  function drawEdges() {
+    var lines = [];
+    nodes.forEach(function(n) {
+      if (!n.children) return;
+      n.children.forEach(function(childId) {
+        var child = nodeMap[childId];
+        if (!child) return;
+        var fromEl = document.getElementById('fc-' + n.id);
+        var toEl = document.getElementById('fc-' + child.id);
+        if (!fromEl || !toEl) return;
+        var x1 = n.x + fromEl.offsetWidth / 2;
+        var y1 = n.y + fromEl.offsetHeight;
+        var x2 = child.x + toEl.offsetWidth / 2;
+        var y2 = child.y;
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.id = 'edge-' + n.id + '-' + childId;
+        svg.appendChild(line);
+      });
+    });
+  }
+  setTimeout(drawEdges, 100);
+
+  var activePath = [];
+
+  window.activateNode = function(id) {
+    var node = nodeMap[id];
+    if (!node) return;
+
+    if (node.type === 'symptom') {
+      activePath = [id];
+    } else {
+      if (activePath.indexOf(id) === -1) {
+        activePath.push(id);
+      }
+    }
+
+    // Update visuals
+    var allNodes = document.querySelectorAll('.fc-node');
+    allNodes.forEach(function(el) { el.classList.remove('active', 'dimmed'); });
+
+    activePath.forEach(function(pid) {
+      var el = document.getElementById('fc-' + pid);
+      if (el) el.classList.add('active');
+    });
+
+    // Dim unrelated
+    if (activePath.length > 0) {
+      var reachable = {};
+      activePath.forEach(function(p) { reachable[p] = true; });
+      var lastNode = nodeMap[activePath[activePath.length - 1]];
+      if (lastNode && lastNode.children) {
+        lastNode.children.forEach(function(c) { reachable[c] = true; });
+      }
+      allNodes.forEach(function(el) {
+        var nid = el.id.replace('fc-', '');
+        if (!reachable[nid]) el.classList.add('dimmed');
+      });
+    }
+
+    // Highlight edges
+    var svgLines = svg.querySelectorAll('line');
+    svgLines.forEach(function(l) { l.classList.remove('path-active'); });
+    for (var i = 0; i < activePath.length - 1; i++) {
+      var edgeEl = document.getElementById('edge-' + activePath[i] + '-' + activePath[i + 1]);
+      if (edgeEl) edgeEl.classList.add('path-active');
+    }
+    var currentNode = nodeMap[id];
+    if (currentNode && currentNode.children) {
+      currentNode.children.forEach(function(childId) {
+        var edgeEl = document.getElementById('edge-' + id + '-' + childId);
+        if (edgeEl) edgeEl.classList.add('path-active');
+      });
+    }
+  };
+
+  window.resetFlowchart = function() {
+    activePath = [];
+    document.querySelectorAll('.fc-node').forEach(function(el) {
+      el.classList.remove('active', 'dimmed');
+    });
+    svg.querySelectorAll('line').forEach(function(l) { l.classList.remove('path-active'); });
+  };
+})();
+
+
+// ===============================
+// SCENE 5: SAFETY SYSTEMS
+// ===============================
+var safetyDoorProgress = 1, safetyDoorTarget = 1;
+var obstructionVisible = false, forceTestActive = false, safetyReversed = false;
+
+(function() {
+  var canvas = document.getElementById('safetyCanvas');
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0c0c0e, 15, 35);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  camera.position.set(5, 2, 9);
+  camera.lookAt(0, 2, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  // Floor
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+  // Frame
+  var frameMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.6 });
+  var lp = new THREE.Mesh(new THREE.BoxGeometry(0.15, 5, 0.15), frameMat);
+  lp.position.set(-2.5, 2.5, 0); scene.add(lp);
+  var rp = lp.clone(); rp.position.set(2.5, 2.5, 0); scene.add(rp);
+  var hdr = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.15, 0.15), frameMat);
+  hdr.position.set(0, 5.05, 0); scene.add(hdr);
+
+  // Motor
+  var motorBox = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 1.2), matDarkSteel);
+  motorBox.position.set(0, 5.3, -5); scene.add(motorBox);
+  var rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 9), matSteel);
+  rail.position.set(0, 5.1, -0.5); scene.add(rail);
+
+  // Door (single group for clarity)
+  var doorGroup = new THREE.Group();
+  var doorMesh = new THREE.Mesh(new THREE.BoxGeometry(4.8, 4.5, 0.1),
+    new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.1, roughness: 0.7 }));
+  doorMesh.position.y = 2.25; doorGroup.add(doorMesh);
+  for (var i = 1; i < 5; i++) {
+    var dline = new THREE.Mesh(new THREE.BoxGeometry(4.82, 0.02, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0xbbbbbb }));
+    dline.position.y = i * 0.9; doorGroup.add(dline);
+  }
+  scene.add(doorGroup);
+
+  // SENSORS
+  var sensorSend = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.5 }));
+  sensorSend.position.set(-2.6, 0.15, 0.15); scene.add(sensorSend);
+  var sendLed = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0x22ff22, emissive: 0x22ff22, emissiveIntensity: 1 }));
+  sendLed.position.set(-2.6, 0.25, 0.2); scene.add(sendLed);
+
+  var sensorRecv = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.5 }));
+  sensorRecv.position.set(2.6, 0.15, 0.15); scene.add(sensorRecv);
+  var recvLed = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0x22ff22, emissive: 0x22ff22, emissiveIntensity: 1 }));
+  recvLed.position.set(2.6, 0.25, 0.2); scene.add(recvLed);
+
+  // IR Beam
+  var beamMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, transparent: true, opacity: 0.4, emissive: 0x22c55e, emissiveIntensity: 0.5 });
+  var irBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 5.2, 4), beamMat);
+  irBeam.rotation.z = Math.PI / 2;
+  irBeam.position.set(0, 0.15, 0.15); scene.add(irBeam);
+
+  // Obstruction
+  var obstruction = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.4),
+    new THREE.MeshStandardMaterial({ color: 0xff6b2b, emissive: 0xff6b2b, emissiveIntensity: 0.2 }));
+  obstruction.position.set(0.5, 0.25, 0.15);
+  obstruction.visible = false; scene.add(obstruction);
+
+  // Force test block
+  var forceBlock = new THREE.Mesh(new THREE.BoxGeometry(1, 0.3, 0.3),
+    new THREE.MeshStandardMaterial({ color: 0xffa733, emissive: 0xffa733, emissiveIntensity: 0.15 }));
+  forceBlock.position.set(0, 0.15, 0);
+  forceBlock.visible = false; scene.add(forceBlock);
+
+  // Manual release cord
+  var cordPts = [
+    new THREE.Vector3(0.3, 5.1, -3),
+    new THREE.Vector3(0.3, 4.5, -2.8),
+    new THREE.Vector3(0.3, 3.8, -2.9)
+  ];
+  var cordCurve = new THREE.CatmullRomCurve3(cordPts);
+  var cord = new THREE.Mesh(new THREE.TubeGeometry(cordCurve, 10, 0.01, 4, false),
+    new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.9 }));
+  scene.add(cord);
+  var handle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.03),
+    new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.8 }));
+  handle.position.set(0.3, 3.72, -2.9); scene.add(handle);
+
+  window.toggleObstruction = function() {
+    obstructionVisible = !obstructionVisible;
+    obstruction.visible = obstructionVisible;
+    forceBlock.visible = false; forceTestActive = false;
+  };
+  window.toggleSafetyDoor = function() {
+    if (safetyDoorTarget > 0.5) { safetyDoorTarget = 0; safetyReversed = false; }
+    else { safetyDoorTarget = 1; }
+  };
+  window.toggleForceDemo = function() {
+    forceTestActive = !forceTestActive;
+    forceBlock.visible = forceTestActive;
+    obstruction.visible = false; obstructionVisible = false;
+    if (forceTestActive) { safetyDoorTarget = 0; safetyReversed = false; }
+  };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dims = fitRenderer(renderer, canvas);
+    camera.aspect = dims.w / dims.h; camera.updateProjectionMatrix();
+
+    var beamBroken = obstructionVisible;
+    var doorClosing = safetyDoorTarget < 0.5 && safetyDoorProgress > 0.05;
+
+    if (beamBroken && doorClosing && !safetyReversed) {
+      safetyDoorTarget = 1; safetyReversed = true;
+    }
+    if (forceTestActive && safetyDoorProgress < 0.08 && !safetyReversed) {
+      safetyDoorTarget = 1; safetyReversed = true;
+    }
+
+    if (Math.abs(safetyDoorProgress - safetyDoorTarget) > 0.002) {
+      safetyDoorProgress += (safetyDoorTarget - safetyDoorProgress) * 0.025;
+    }
+    doorGroup.position.y = safetyDoorProgress * 4.5;
+
+    if (beamBroken) {
+      beamMat.color.setHex(0xff4444); beamMat.emissive.setHex(0xff4444); beamMat.opacity = 0.2;
+      recvLed.material.color.setHex(0xff4444); recvLed.material.emissive.setHex(0xff4444);
+    } else {
+      beamMat.color.setHex(0x22c55e); beamMat.emissive.setHex(0x22c55e); beamMat.opacity = 0.4;
+      recvLed.material.color.setHex(0x22ff22); recvLed.material.emissive.setHex(0x22ff22);
+    }
+
+    // Readouts
+    var irEl = document.getElementById('irBeamVal');
+    irEl.textContent = beamBroken ? 'BLOCKED' : 'CLEAR';
+    irEl.style.color = beamBroken ? 'var(--danger)' : 'var(--success)';
+
+    var motorForce = forceTestActive && safetyDoorProgress < 0.1 ? 18 : Math.round((1 - safetyDoorProgress) * 8);
+    setReadout('motorForceVal', motorForce, ' lb-ft');
+    var mfEl = document.getElementById('motorForceVal');
+    if (mfEl) mfEl.style.color = motorForce > 15 ? 'var(--danger)' : 'var(--accent)';
+
+    var statusEl = document.getElementById('safetyStatusVal');
+    if (safetyReversed) {
+      statusEl.textContent = 'REVERSED'; statusEl.style.color = 'var(--accent2)';
+    } else if (beamBroken) {
+      statusEl.textContent = 'BLOCKED'; statusEl.style.color = 'var(--danger)';
+    } else {
+      statusEl.textContent = 'SAFE'; statusEl.style.color = 'var(--success)';
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+
+// ===============================
+// SCENE 6: COMMERCIAL VS RESIDENTIAL
+// ===============================
+(function() {
+  var canvas = document.getElementById('commercialCanvas');
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0c0c0e, 15, 35);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
+  camera.position.set(6, 3, 8);
+  camera.lookAt(0, 2, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+  var frameMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.6 });
+
+  // SECTIONAL GROUP
+  var sectionalGroup = new THREE.Group();
+  var slp = new THREE.Mesh(new THREE.BoxGeometry(0.2, 6, 0.2), frameMat);
+  slp.position.set(-3, 3, 0); sectionalGroup.add(slp);
+  var srp = slp.clone(); srp.position.x = 3; sectionalGroup.add(srp);
+  var shdr = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.2, 0.2), frameMat);
+  shdr.position.set(0, 6.1, 0); sectionalGroup.add(shdr);
+
+  for (var i = 0; i < 5; i++) {
+    var panel = new THREE.Mesh(new THREE.BoxGeometry(5.8, 1.1, 0.15),
+      new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.15, roughness: 0.6 }));
+    panel.position.set(0, 0.55 + i * 1.1, 0); panel.castShadow = true;
+    sectionalGroup.add(panel);
+    var groove = new THREE.Mesh(new THREE.BoxGeometry(5.82, 0.02, 0.16),
+      new THREE.MeshStandardMaterial({ color: 0xaaaaaa }));
+    groove.position.set(0, 1.08 + i * 1.1, 0); sectionalGroup.add(groove);
+  }
+  var hoist = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.5), matOrange);
+  hoist.position.set(-3.5, 5.5, 0.3); sectionalGroup.add(hoist);
+  var cShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6.5, 8), matSteel);
+  cShaft.rotation.z = Math.PI / 2; cShaft.position.set(0, 6.3, 0); sectionalGroup.add(cShaft);
+  scene.add(sectionalGroup);
+
+  // ROLLING STEEL GROUP
+  var rollingGroup = new THREE.Group();
+  rollingGroup.visible = false;
+  var rlp = new THREE.Mesh(new THREE.BoxGeometry(0.2, 6, 0.2), frameMat);
+  rlp.position.set(-3, 3, 0); rollingGroup.add(rlp);
+  var rrp = rlp.clone(); rrp.position.x = 3; rollingGroup.add(rrp);
+
+  var barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 6.2, 16),
+    new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.7, roughness: 0.3 }));
+  barrel.rotation.z = Math.PI / 2; barrel.position.set(0, 6.5, 0.3); rollingGroup.add(barrel);
+
+  var hood = new THREE.Mesh(new THREE.BoxGeometry(6.4, 1.6, 1.2),
+    new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.6, roughness: 0.4, transparent: true, opacity: 0.7 }));
+  hood.position.set(0, 6.5, 0.3); rollingGroup.add(hood);
+
+  for (var i = 0; i < 20; i++) {
+    var slat = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.08, 0.04),
+      new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.6, roughness: 0.3 }));
+    slat.position.set(0, 5.7 - i * 0.28, 0); rollingGroup.add(slat);
+    var bump = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.02, 0.06),
+      new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.6, roughness: 0.3 }));
+    bump.position.set(0, 5.7 - i * 0.28 + 0.04, 0.02); rollingGroup.add(bump);
+  }
+  var guideL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 6, 0.15), frameMat);
+  guideL.position.set(-2.95, 3, 0); rollingGroup.add(guideL);
+  var guideR = guideL.clone(); guideR.position.x = 2.95; rollingGroup.add(guideR);
+  scene.add(rollingGroup);
+
+  // HIGH LIFT GROUP
+  var highLiftGroup = new THREE.Group();
+  highLiftGroup.visible = false;
+  var hlp = new THREE.Mesh(new THREE.BoxGeometry(0.2, 8, 0.2), frameMat);
+  hlp.position.set(-3, 4, 0); highLiftGroup.add(hlp);
+  var hrp = hlp.clone(); hrp.position.x = 3; highLiftGroup.add(hrp);
+  var hhdr = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.2, 0.2), frameMat);
+  hhdr.position.set(0, 8.1, 0); highLiftGroup.add(hhdr);
+
+  var hlTrackL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 8, 0.08), frameMat);
+  hlTrackL.position.set(-2.8, 4, 0); highLiftGroup.add(hlTrackL);
+  var hlTrackR = hlTrackL.clone(); hlTrackR.position.x = 2.8; highLiftGroup.add(hlTrackR);
+  var hlHTrackL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 6), frameMat);
+  hlHTrackL.position.set(-2.8, 7.8, -3); highLiftGroup.add(hlHTrackL);
+  var hlHTrackR = hlHTrackL.clone(); hlHTrackR.position.x = 2.8; highLiftGroup.add(hlHTrackR);
+
+  for (var i = 0; i < 5; i++) {
+    var hlPanel = new THREE.Mesh(new THREE.BoxGeometry(5.8, 1.1, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.1, roughness: 0.7 }));
+    hlPanel.position.set(0, 0.55 + i * 1.1, 0); highLiftGroup.add(hlPanel);
+  }
+
+  // Dual high-cycle springs
+  [-1, 1].forEach(function(s) {
+    var hsPts = [];
+    for (var t = 0; t < Math.PI * 25; t += 0.15) {
+      hsPts.push(new THREE.Vector3(t * 0.035 - 1.3, 0, Math.sin(t) * 0.1));
+    }
+    var hsCurve = new THREE.CatmullRomCurve3(hsPts);
+    var hsSpring = new THREE.Mesh(new THREE.TubeGeometry(hsCurve, 120, 0.02, 6, false), matRed);
+    hsSpring.position.set(s * 0.5, 8.3, 0); highLiftGroup.add(hsSpring);
+  });
+
+  var hlShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6.5, 8), matSteel);
+  hlShaft.rotation.z = Math.PI / 2; hlShaft.position.set(0, 8.3, 0); highLiftGroup.add(hlShaft);
+  scene.add(highLiftGroup);
+
+  window.showCommType = function(type) {
+    sectionalGroup.visible = (type === 'sectional');
+    rollingGroup.visible = (type === 'rolling');
+    highLiftGroup.visible = (type === 'highLift');
+    var btns = canvas.parentElement.querySelectorAll('.ctrl-btn');
+    btns[0].classList.toggle('active', type === 'sectional');
+    btns[1].classList.toggle('active', type === 'rolling');
+    btns[2].classList.toggle('active', type === 'highLift');
+  };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var dims = fitRenderer(renderer, canvas);
+    camera.aspect = dims.w / dims.h; camera.updateProjectionMatrix();
+    if (rollingGroup.visible) barrel.rotation.x += 0.003;
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+
+// NAV ACTIVE STATE
+var sections = document.querySelectorAll('.section[id]');
+var navLinks = document.querySelectorAll('.nav a');
+window.addEventListener('scroll', function() {
+  var current = '';
+  sections.forEach(function(s) {
+    if (window.scrollY >= s.offsetTop - 200) current = s.id;
+  });
+  navLinks.forEach(function(a) {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
