@@ -1,0 +1,2079 @@
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  PHASE 4 — LED & EMI Enhancements                          ║
+  ║  PHASE 5 — Smart Home & Security Deep Dive                 ║
+  ║                                                             ║
+  ║  Drop these HTML sections into index.html between the       ║
+  ║  existing LED Interference section and the Footer.          ║
+  ║  The <style> block goes inside <head>.                      ║
+  ║  The <script> block goes before the closing </body>.        ║
+  ║                                                             ║
+  ║  Dependencies: Three.js r128 CDN, existing utility fns      ║
+  ║  (makeRenderer, fitRenderer, addLights, makeOrbitLike),     ║
+  ║  existing shared materials (matSteel, matDarkSteel, etc.)   ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 4 + 5: ADDITIONAL CSS                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<style>
+/* ─── OSCILLOSCOPE ─── */
+.scope-wrap {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  background: #0a0f0a;
+  border: 2px solid #1a3a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: inset 0 0 40px rgba(0,255,0,0.03);
+}
+
+.scope-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.scope-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,0,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,0,0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.scope-label {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(0,255,0,0.6);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.scope-readouts {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.scope-readouts .snr-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.scope-readouts .snr-good { color: #22c55e; }
+.scope-readouts .snr-warn { color: #ffa733; }
+.scope-readouts .snr-bad { color: #ef4444; }
+
+.scope-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.scope-controls label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.scope-controls select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.scope-controls select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ─── ANTENNA DEMO ─── */
+.antenna-controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.antenna-btn {
+  padding: 0.6rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.antenna-btn:hover { border-color: var(--accent); color: var(--text); }
+.antenna-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ─── FCC EXPLAINER ─── */
+.fcc-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .fcc-comparison { grid-template-columns: 1fr; }
+}
+
+.fcc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.fcc-card.compliant { border-left: 4px solid var(--success); }
+.fcc-card.non-compliant { border-left: 4px solid var(--danger); }
+
+.fcc-card h4 {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.fcc-card.compliant h4 { color: var(--success); }
+.fcc-card.non-compliant h4 { color: var(--danger); }
+
+.fcc-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.fcc-card li {
+  color: var(--text2);
+  font-size: 0.9rem;
+  padding: 0.3rem 0;
+  padding-left: 1.2rem;
+  position: relative;
+}
+
+.fcc-card li::before {
+  position: absolute;
+  left: 0;
+  font-size: 0.8rem;
+}
+
+.fcc-card.compliant li::before { content: '\2713'; color: var(--success); }
+.fcc-card.non-compliant li::before { content: '\2717'; color: var(--danger); }
+
+/* ─── ROLLING CODE ANIMATION ─── */
+.rolling-code-wrap {
+  position: relative;
+  width: 100%;
+  height: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.rolling-code-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.rolling-code-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 5;
+}
+
+/* ─── RETROFIT COMPARISON TOOL ─── */
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.filter-bar label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-right: 0.25rem;
+}
+
+.filter-btn {
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover { border-color: var(--accent); color: var(--text); }
+.filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.retrofit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.retrofit-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 0.3s;
+}
+
+.retrofit-card:hover { border-color: var(--accent); }
+.retrofit-card.hidden { display: none; }
+
+.retrofit-card h4 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.retrofit-card .price {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent2);
+  margin-bottom: 0.5rem;
+}
+
+.retrofit-card .tags {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.retrofit-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.retrofit-tag.wifi { background: rgba(34,211,238,0.15); color: var(--accent3); }
+.retrofit-tag.zwave { background: rgba(34,197,94,0.15); color: var(--success); }
+.retrofit-tag.zigbee { background: rgba(255,167,51,0.15); color: var(--accent2); }
+.retrofit-tag.local { background: rgba(34,197,94,0.15); color: var(--success); }
+.retrofit-tag.cloud { background: rgba(239,68,68,0.15); color: var(--danger); }
+.retrofit-tag.matter { background: rgba(168,85,247,0.15); color: #a855f7; }
+.retrofit-tag.mqtt { background: rgba(34,211,238,0.15); color: var(--accent3); }
+
+.retrofit-card p {
+  color: var(--text2);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.retrofit-card .compat {
+  margin-top: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text2);
+}
+
+/* ─── MATTER TIMELINE ─── */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+  margin: 2rem 0;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+  padding-left: 1rem;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -1.65rem;
+  top: 0.35rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+}
+
+.timeline-item.future::before {
+  background: transparent;
+  border: 2px solid var(--accent);
+}
+
+.timeline-year {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-text {
+  color: var(--text2);
+  font-size: 0.9rem;
+}
+
+.timeline-text strong {
+  color: var(--text);
+}
+
+/* ─── WIFI ARCHITECTURE ─── */
+.wifi-arch-legend {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text2);
+}
+
+.wifi-arch-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+.wifi-arch-legend .legend-cloud::before { background: #ef4444; }
+.wifi-arch-legend .legend-local::before { background: #22c55e; }
+.wifi-arch-legend .legend-matter::before { background: #a855f7; }
+</style>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 4: LED & EMI ENHANCEMENTS                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<!-- ── 4.1 OSCILLOSCOPE WAVEFORM DISPLAY ── -->
+<div class="divider"></div>
+<div class="section" id="oscilloscope">
+  <div class="section-header">
+    <div class="section-tag">04.1 / Electromagnetic</div>
+    <div class="section-title">Oscilloscope: Signal vs Noise</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:1.5rem;">
+    This real-time oscilloscope visualization shows exactly what happens at the radio frequency level when cheap LED bulbs are installed in a garage door opener. Watch the clean 315 MHz remote signal get buried under broadband switching noise.
+  </p>
+
+  <div class="scope-controls">
+    <label>Bulb Wattage:</label>
+    <select id="scopeWattage" onchange="updateScope(this.value)">
+      <option value="0">No Bulb (Baseline)</option>
+      <option value="5">5W LED (Compliant)</option>
+      <option value="8" selected>8W LED (Threshold)</option>
+      <option value="12">12W LED (Cheap)</option>
+      <option value="15">15W LED (Worst Case)</option>
+    </select>
+    <label style="margin-left:1rem;">Signal:</label>
+    <select id="scopeSignal" onchange="updateScopeSignal(this.value)">
+      <option value="remote" selected>Remote Transmit (315 MHz)</option>
+      <option value="wifi">Wi-Fi (2.4 GHz)</option>
+      <option value="sensor">Safety Sensor (IR)</option>
+    </select>
+  </div>
+
+  <div class="scope-wrap">
+    <canvas id="scopeCanvas"></canvas>
+    <div class="scope-grid"></div>
+    <div class="scope-label">RF Spectrum Analyzer &mdash; 300&ndash;400 MHz Band</div>
+    <div class="scope-readouts">
+      <div style="color:rgba(0,255,0,0.5);margin-bottom:0.25rem;">SIGNAL: <span style="color:#22c55e;" id="scopeSigLevel">-42 dBm</span></div>
+      <div style="color:rgba(0,255,0,0.5);margin-bottom:0.25rem;">NOISE: <span style="color:#ef4444;" id="scopeNoiseLevel">-85 dBm</span></div>
+      <div style="color:rgba(0,255,0,0.5);">SNR: <span class="snr-value snr-good" id="scopeSNR">43 dB</span></div>
+    </div>
+  </div>
+
+  <div class="readout">
+    <div class="readout-item">
+      <div class="readout-label">Remote Range</div>
+      <div class="readout-value" id="scopeRange">50<span class="readout-unit">ft</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Noise Floor</div>
+      <div class="readout-value" id="scopeFloor">-85<span class="readout-unit">dBm</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">SNR</div>
+      <div class="readout-value" id="scopeSNRReadout">43<span class="readout-unit">dB</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Receiver Status</div>
+      <div class="readout-value" id="scopeStatus" style="color:var(--success);">OK</div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h4>Reading the Scope</h4>
+    <p>The <span style="color:#22c55e;">green trace</span> is the remote control signal at 315 MHz. The <span style="color:#ef4444;">red trace</span> is the broadband EMI noise from the LED switching power supply. When the red noise floor rises above the green signal peak, the opener's receiver can no longer distinguish the remote's command from random noise -- this is when your remote "stops working."</p>
+  </div>
+</div>
+
+
+<!-- ── 4.2 3D LED BULB CUTAWAY ── -->
+<div class="divider"></div>
+<div class="section" id="led-cutaway">
+  <div class="section-header">
+    <div class="section-tag">04.2 / Internal Components</div>
+    <div class="section-title">LED Bulb Cutaway</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    Inside every LED bulb is a miniature switching power supply. This cutaway reveals the components responsible for generating electromagnetic interference -- and why cheaper bulbs produce dramatically more noise.
+  </p>
+
+  <div class="canvas-wrap" style="height:450px;">
+    <canvas id="ledCutawayCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn" onclick="toggleLedCutawayEMI()">Toggle EMI Rings</button>
+      <button class="ctrl-btn" onclick="toggleLedCutawayExplode()">Explode View</button>
+    </div>
+    <div class="canvas-label">Interactive 3D &mdash; Drag to rotate</div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>LED Array</h3>
+      <p>Surface-mount LEDs (typically 2835 or 5730 packages) soldered to an aluminum PCB. The LEDs themselves produce no EMI -- they're simple diodes. The light output is proportional to current, not voltage, which is why a constant-current driver is needed.</p>
+    </div>
+    <div class="info-card">
+      <h3>Switching Driver PCB</h3>
+      <p>The EMI culprit. A tiny circuit board containing a switching MOSFET, inductor, and control IC that converts 120V AC to ~30V DC at high frequency (typically 40-200 kHz). The rapid on/off switching of the MOSFET through the inductor generates broadband harmonics extending well into the hundreds of MHz.</p>
+    </div>
+    <div class="info-card">
+      <h3>Heat Sink</h3>
+      <p>Aluminum fins dissipate heat from both the LEDs and the driver circuit. In cheap bulbs, the heat sink is undersized, causing the driver to run hotter and switch less cleanly -- producing even more EMI. Quality bulbs use larger heat sinks with proper thermal paste contact.</p>
+    </div>
+    <div class="info-card">
+      <h3>EMI Filtering (or lack thereof)</h3>
+      <p>Compliant bulbs include input filtering: X/Y safety capacitors, common-mode chokes, and sometimes a small metal shield over the driver PCB. Cheap imports skip these components to save $0.15-0.30 per bulb. The result: 10-100x more conducted and radiated emissions.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── 4.3 EMI RADIATION PATTERN ── -->
+<div class="divider"></div>
+<div class="section" id="emi-pattern">
+  <div class="section-header">
+    <div class="section-tag">04.3 / Radiation</div>
+    <div class="section-title">EMI Radiation Pattern</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    When a cheap LED is installed in the opener housing, it radiates EMI in a near-field pattern that directly overwhelms the opener's antenna. This 3D visualization shows why proximity matters -- the antenna wire is inches from the noise source.
+  </p>
+
+  <div class="canvas-wrap" style="height:450px;">
+    <canvas id="emiPatternCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn active" id="emiBulbOnBtn" onclick="toggleEMIBulb(true)">LEDs On</button>
+      <button class="ctrl-btn" id="emiBulbOffBtn" onclick="toggleEMIBulb(false)">LEDs Off</button>
+    </div>
+    <div class="canvas-label">EMI pattern from opener housing &mdash; Drag to rotate</div>
+  </div>
+
+  <div class="readout">
+    <div class="readout-item">
+      <div class="readout-label">EMI at Antenna</div>
+      <div class="readout-value" id="emiAtAntenna">-28<span class="readout-unit">dBm</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Remote Signal</div>
+      <div class="readout-value" id="emiRemoteSignal">-42<span class="readout-unit">dBm</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Distance Falloff</div>
+      <div class="readout-value" id="emiFalloff">1/r&sup2;</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── 4.4 ANTENNA WIRE DEMO ── -->
+<div class="divider"></div>
+<div class="section" id="antenna-demo">
+  <div class="section-header">
+    <div class="section-tag">04.4 / Signal Reception</div>
+    <div class="section-title">Antenna Placement Demo</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:1.5rem;">
+    The opener's antenna is a simple wire tuned to 315 MHz (approximately 9.5 inches for a quarter-wave). Its placement dramatically affects reception. Select a configuration to see the impact.
+  </p>
+
+  <div class="canvas-wrap" style="height:400px;">
+    <canvas id="antennaCanvas"></canvas>
+    <div class="canvas-label">Antenna configurations &mdash; Click buttons to compare</div>
+  </div>
+
+  <div class="antenna-controls">
+    <button class="antenna-btn active" onclick="setAntennaMode('straight', this)">Hanging Straight</button>
+    <button class="antenna-btn" onclick="setAntennaMode('coiled', this)">Coiled Up</button>
+    <button class="antenna-btn" onclick="setAntennaMode('cut', this)">Cut Short</button>
+    <button class="antenna-btn" onclick="setAntennaMode('tucked', this)">Tucked Behind</button>
+  </div>
+
+  <div class="readout">
+    <div class="readout-item">
+      <div class="readout-label">Signal Strength</div>
+      <div class="readout-value" id="antennaSignal">100<span class="readout-unit">%</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Effective Range</div>
+      <div class="readout-value" id="antennaRange">50<span class="readout-unit">ft</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Configuration</div>
+      <div class="readout-value" id="antennaConfig" style="font-size:0.9rem;">Optimal</div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h4>Technician Tip</h4>
+    <p>The single most common cause of reduced remote range (after LED interference) is a damaged or improperly routed antenna wire. The wire should hang straight down from the opener housing, fully extended to its original length (~9.5"). Never cut, coil, or tuck the antenna wire. If the wire is missing, a 9.5" piece of 20-gauge insulated wire works as a replacement.</p>
+  </div>
+</div>
+
+
+<!-- ── 4.5 FCC PART 15 EXPLAINER ── -->
+<div class="divider"></div>
+<div class="section" id="fcc-part15">
+  <div class="section-header">
+    <div class="section-tag">04.5 / Regulatory</div>
+    <div class="section-title">FCC Part 15 &amp; LED Compliance</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    FCC Part 15 sets limits for unintentional electromagnetic emissions from electronic devices. LED bulbs are classified as "unintentional radiators" -- they're not designed to transmit RF, but their switching circuits do. Here's why compliance matters.
+  </p>
+
+  <div class="fcc-comparison">
+    <div class="fcc-card compliant">
+      <h4>FCC-Compliant LED Bulb</h4>
+      <ul>
+        <li>Has FCC ID or Declaration of Conformity</li>
+        <li>Includes EMI input filter (X/Y caps, choke)</li>
+        <li>Shielded driver PCB with ground plane</li>
+        <li>Emissions below Part 15.109 limits</li>
+        <li>Tested at accredited lab (per ANSI C63.4)</li>
+        <li>Typical price: $4-8 per bulb</li>
+        <li>Examples: Genie, Chamberlain, Philips brands</li>
+      </ul>
+    </div>
+    <div class="fcc-card non-compliant">
+      <h4>Non-Compliant LED Bulb</h4>
+      <ul>
+        <li>No FCC markings or fake FCC ID</li>
+        <li>No input filter -- bare minimum components</li>
+        <li>Unshielded driver, no ground plane</li>
+        <li>Emissions 10-100x above Part 15 limits</li>
+        <li>No lab testing documentation</li>
+        <li>Typical price: $1-3 per bulb (multi-packs)</li>
+        <li>Common on Amazon, Temu, bulk import sites</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Part 15.109 Limits</h3>
+      <p>For Class B (residential) unintentional radiators, FCC limits radiated emissions to ~40 dBuV/m at 300 MHz (measured at 3 meters). Cheap LED bulbs can exceed this by 20-40 dB -- that's 10x to 100x more power than allowed. The FCC rarely enforces against individual bulbs, which is why the market is flooded with non-compliant products.</p>
+    </div>
+    <div class="info-card">
+      <h3>How to Check Compliance</h3>
+      <p>Look for the FCC logo or text "This device complies with Part 15 of the FCC Rules" on the packaging. You can verify an FCC ID at <strong>fcc.gov/oet/ea/fccid</strong>. However, many compliant bulbs use a "Supplier's Declaration of Conformity" (SDoC) which doesn't have a searchable ID. Brand-name bulbs from major manufacturers are generally safe.</p>
+    </div>
+    <div class="info-card">
+      <h3>Garage Door-Rated Bulbs</h3>
+      <p>Several manufacturers now sell bulbs specifically marketed for garage door openers: Genie LED (A19, 800 lumen), Chamberlain CHLED, and various "radio-safe" branded options. These include extra EMI filtering and are tested to not interfere with 300-400 MHz receivers. They cost $3-5 more than generic bulbs but eliminate interference problems entirely.</p>
+    </div>
+    <div class="info-card">
+      <h3>DIY Fix: Ferrite Chokes</h3>
+      <p>Snap-on ferrite chokes (cores) placed on the wiring close to the bulb socket can reduce conducted EMI by 10-20 dB. They work by converting high-frequency noise into heat. Use a mix-31 or mix-43 ferrite core rated for 200-500 MHz. This is a $2 fix that can improve marginal interference cases but won't solve severe problems from very cheap bulbs.</p>
+    </div>
+  </div>
+
+  <div class="warning-box">
+    <h4>Why FCC Enforcement Is Weak</h4>
+    <p>The FCC's Enforcement Bureau prioritizes intentional radiators (illegal radio transmitters, jamming devices) over unintentional radiators like LED bulbs. With millions of non-compliant bulbs imported annually, enforcement is practically impossible at the product level. The burden falls on consumers to choose compliant products -- which is why education (like this section) matters.</p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 5: SMART HOME & SECURITY DEEP DIVE              -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<!-- ── 5.1 ROLLING CODE ANIMATION ── -->
+<div class="divider"></div>
+<div class="section" id="rolling-code">
+  <div class="section-header">
+    <div class="section-tag">05.1 / Security</div>
+    <div class="section-title">Rolling Code Encryption</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    Rolling code (also called "hopping code") prevents replay attacks by generating a new encrypted code with every button press. The remote and opener share a synchronized counter and encryption key -- if you capture and replay a code, it's already expired.
+  </p>
+
+  <div class="rolling-code-wrap">
+    <canvas id="rollingCodeCanvas"></canvas>
+    <div class="rolling-code-controls">
+      <button class="ctrl-btn" onclick="triggerRollingCode('transmit')">Transmit Code</button>
+      <button class="ctrl-btn" onclick="triggerRollingCode('replay')">Replay Attack</button>
+      <button class="ctrl-btn" onclick="triggerRollingCode('reset')">Reset</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="rollingTabs">
+    <button class="tab-btn active" onclick="switchRollingTab(this, 'sec1')">Security+ 1.0</button>
+    <button class="tab-btn" onclick="switchRollingTab(this, 'sec2')">Security+ 2.0</button>
+  </div>
+
+  <div class="tab-content active" id="tab-sec1">
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>How Security+ 1.0 Works</h3>
+        <p>The original Security+ protocol (2005) uses a combination of a fixed code portion (identifying the specific remote) and a rolling code portion (a counter encrypted with a shared key). Each transmission increments the counter by 1-3 steps. The opener accepts codes within a "window" of the next ~256 expected values, allowing for out-of-range button presses.</p>
+      </div>
+      <div class="info-card">
+        <h3>Vulnerability: Known Plaintext</h3>
+        <p>Security+ 1.0's fixed portion means an attacker who captures enough transmissions can potentially derive the fixed code. The rolling portion uses a relatively simple XOR-based cipher. While replay attacks fail (the code is already used), sophisticated attacks combining jamming + capture can work against 1.0 -- the attacker jams the real signal while capturing the code for later use.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-sec2">
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>How Security+ 2.0 Works</h3>
+        <p>Security+ 2.0 (2011+) eliminates the fixed code entirely. The entire transmission is encrypted using AES-like block cipher with a 32-bit rolling counter. The remote and opener share a secret key established during programming. Each code is unique and reveals nothing about the key or the next code. Even capturing millions of transmissions provides no mathematical advantage for predicting future codes.</p>
+      </div>
+      <div class="info-card">
+        <h3>Why Replay Attacks Fail</h3>
+        <p>The opener maintains a "window" of acceptable counter values (typically next 256 codes). Once a code is received and validated, the window advances past it. A replayed code falls behind the window and is rejected. The jam-and-capture attack from 1.0 is also defeated because 2.0 uses a challenge-response element during the resynchronization process.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── 5.2 WI-FI ARCHITECTURE DIAGRAM ── -->
+<div class="divider"></div>
+<div class="section" id="wifi-architecture">
+  <div class="section-header">
+    <div class="section-tag">05.2 / Network</div>
+    <div class="section-title">Smart Opener Architectures</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    Not all "smart" garage door integrations are created equal. The command path from your phone to the motor determines latency, reliability, and privacy. Compare three fundamentally different architectures.
+  </p>
+
+  <div class="canvas-wrap" style="height:450px;">
+    <canvas id="wifiArchCanvas"></canvas>
+    <div class="controls-bar">
+      <button class="ctrl-btn active" id="archCloudBtn" onclick="setArchMode('cloud', this)">Cloud (myQ)</button>
+      <button class="ctrl-btn" id="archLocalBtn" onclick="setArchMode('local', this)">Local (Z-Wave)</button>
+      <button class="ctrl-btn" id="archMatterBtn" onclick="setArchMode('matter', this)">Matter</button>
+    </div>
+    <div class="canvas-label">Network architecture comparison &mdash; Drag to rotate</div>
+  </div>
+
+  <div class="wifi-arch-legend">
+    <span class="legend-cloud">Cloud-dependent</span>
+    <span class="legend-local">Local-only</span>
+    <span class="legend-matter">Matter (local + cloud)</span>
+  </div>
+
+  <div class="readout">
+    <div class="readout-item">
+      <div class="readout-label">Total Latency</div>
+      <div class="readout-value" id="archLatency">2-5<span class="readout-unit">sec</span></div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Internet Required</div>
+      <div class="readout-value" id="archInternet" style="color:var(--danger);">Yes</div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Hops</div>
+      <div class="readout-value" id="archHops">4</div>
+    </div>
+    <div class="readout-item">
+      <div class="readout-label">Privacy</div>
+      <div class="readout-value" id="archPrivacy" style="font-size:0.9rem;color:var(--danger);">Low</div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Cloud-Dependent (myQ)</h3>
+      <p>Phone &rarr; myQ Cloud (AWS) &rarr; Home Router &rarr; Opener Wi-Fi Module. Every command traverses the internet, even when you're standing in the garage. If myQ servers go down (which happens), no remote control. Chamberlain has also started charging subscription fees and restricting third-party API access. Typical latency: 2-5 seconds.</p>
+    </div>
+    <div class="info-card">
+      <h3>Local Control (Z-Wave/Zigbee)</h3>
+      <p>Phone &rarr; Local Hub (SmartThings/Hubitat) &rarr; Z-Wave/Zigbee &rarr; Controller &rarr; Opener. Commands stay on your local network. No internet dependency, no cloud outages, no subscription fees. Latency: &lt;500ms. Requires a dedicated smart home hub. Z-Wave devices like GoControl and Zooz relay wire to the opener's button terminals.</p>
+    </div>
+    <div class="info-card">
+      <h3>Matter over Thread</h3>
+      <p>Phone &rarr; Thread Border Router &rarr; Thread Mesh &rarr; Opener. Matter provides local control with optional cloud connectivity for remote access. Thread's mesh networking means no Wi-Fi dependency. Universal compatibility: HomeKit, Google Home, Alexa, SmartThings -- all with one protocol. Low power, low latency (&lt;300ms local).</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── 5.3 RETROFIT COMPARISON TOOL ── -->
+<div class="divider"></div>
+<div class="section" id="retrofit-comparison">
+  <div class="section-header">
+    <div class="section-tag">05.3 / Smart Upgrades</div>
+    <div class="section-title">Retrofit Device Comparison</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    Don't want to replace your entire opener? These retrofit devices add smart capability to any existing garage door opener. Filter by what matters most to you.
+  </p>
+
+  <div class="filter-bar">
+    <label>Protocol:</label>
+    <button class="filter-btn active" onclick="filterRetrofit('all', this)">All</button>
+    <button class="filter-btn" onclick="filterRetrofit('wifi', this)">Wi-Fi</button>
+    <button class="filter-btn" onclick="filterRetrofit('zwave', this)">Z-Wave</button>
+    <button class="filter-btn" onclick="filterRetrofit('zigbee', this)">Zigbee</button>
+    <button class="filter-btn" onclick="filterRetrofit('mqtt', this)">MQTT/ESPHome</button>
+    <span style="margin-left:auto;"></span>
+    <label>Control:</label>
+    <button class="filter-btn" onclick="filterRetrofit('local', this)">Local Only</button>
+    <button class="filter-btn" onclick="filterRetrofit('cloud', this)">Cloud</button>
+  </div>
+
+  <div class="retrofit-grid" id="retrofitGrid">
+    <!-- Cards populated by JS -->
+  </div>
+</div>
+
+
+<!-- ── 5.4 RATGDO / LOCAL CONTROL ── -->
+<div class="divider"></div>
+<div class="section" id="ratgdo">
+  <div class="section-header">
+    <div class="section-tag">05.4 / Open Source</div>
+    <div class="section-title">Ratgdo &amp; Local Control</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    The <strong>ratgdo</strong> (Rage Against the Garage Door Opener) project is an open-source ESP8266/ESP32-based board that taps directly into the Security+ 2.0 serial bus on Chamberlain/LiftMaster openers. It provides full local control via MQTT or ESPHome -- no cloud, no subscriptions, no API restrictions.
+  </p>
+
+  <div class="canvas-wrap" style="height:350px;">
+    <canvas id="ratgdoCanvas"></canvas>
+    <div class="canvas-label">Ratgdo wiring &amp; communication flow</div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>How It Works</h3>
+      <p>Ratgdo connects to the opener's serial bus (the same bus used by wall consoles and wireless keypads). It speaks the Security+ 2.0 protocol natively, sending open/close/light commands and reading door state, obstruction status, and light state. Unlike relay-based retrofits, ratgdo provides true status feedback -- it knows if the door is open, closed, opening, or closing.</p>
+    </div>
+    <div class="info-card">
+      <h3>MQTT / ESPHome Integration</h3>
+      <p>The board runs either MQTT firmware (for any MQTT broker like Mosquitto) or ESPHome firmware (native Home Assistant integration). ESPHome provides auto-discovery in Home Assistant -- the device shows up automatically with open/close controls, door state sensor, light toggle, and obstruction sensor. No cloud dependency, no polling, instant state updates via the serial bus.</p>
+    </div>
+    <div class="info-card">
+      <h3>Wiring</h3>
+      <p>Three-wire connection to the opener: <strong>Red</strong> (3.3V power from opener logic board), <strong>White</strong> (serial data), <strong>Black/Shield</strong> (ground). The serial bus runs at 9600 baud with an inverted signal. Ratgdo includes an onboard voltage regulator and level shifter. Compatible with Security+ 2.0 openers manufactured 2011 and later.</p>
+    </div>
+    <div class="info-card">
+      <h3>Why It Matters</h3>
+      <p>Chamberlain's decision to block third-party myQ API access (2023) left many smart home users without garage door control in Home Assistant, HomeKit (without the $70 bridge), and other platforms. Ratgdo restores and exceeds that functionality with faster response times, no internet dependency, and no risk of future API lockouts. It's the community's answer to vendor lock-in.</p>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h4>Where to Get Ratgdo</h4>
+    <p>The ratgdo project is open-source hardware. Pre-assembled boards are available from <strong>ratgdo.com</strong> and community group buys. The ESP8266 version is ~$30, the newer ESP32 version ~$35. Both include all necessary components and a 3D-printable case. Firmware updates are done over Wi-Fi (OTA). Full documentation, wiring diagrams, and firmware at <strong>github.com/PaulWieland/ratgdo</strong>.</p>
+  </div>
+</div>
+
+
+<!-- ── 5.5 MATTER PROTOCOL FUTURE ── -->
+<div class="divider"></div>
+<div class="section" id="matter-protocol">
+  <div class="section-header">
+    <div class="section-tag">05.5 / Future</div>
+    <div class="section-title">Matter Protocol &amp; the Future</div>
+  </div>
+
+  <p style="color:var(--text2);font-size:1.05rem;max-width:800px;margin-bottom:2rem;">
+    Matter is the smart home industry's attempt to end the protocol wars. Backed by Apple, Google, Amazon, and Samsung, Matter over Thread promises a future where any garage door opener works with any smart home platform -- locally, securely, and without a cloud subscription.
+  </p>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>What Is Matter?</h3>
+      <p>Matter is an application-layer protocol that runs over Wi-Fi, Thread, or Ethernet. It defines standard device types (including "garage door controller") with standardized commands (open, close, status). Any Matter-certified device works with any Matter-certified controller -- HomeKit, Google Home, Alexa, SmartThings -- out of the box, with no custom integrations needed.</p>
+    </div>
+    <div class="info-card">
+      <h3>Thread vs Wi-Fi</h3>
+      <p>Thread is a low-power mesh networking protocol (based on IEEE 802.15.4) designed for IoT. Unlike Wi-Fi, Thread devices form a self-healing mesh -- each device extends the network's range. Thread Border Routers (built into HomePod Mini, Nest Hub, Echo Gen 4) bridge Thread to your IP network. For garage door openers, Thread means reliable connectivity without Wi-Fi range issues in the garage.</p>
+    </div>
+    <div class="info-card">
+      <h3>Local-First Control</h3>
+      <p>Matter's key principle: local control is mandatory, cloud is optional. Every Matter command must work without internet connectivity. Cloud access (for remote control away from home) is an optional add-on, not a requirement. This eliminates the single point of failure that plagues myQ and similar cloud-dependent systems.</p>
+    </div>
+    <div class="info-card">
+      <h3>Security Model</h3>
+      <p>Matter uses CASE (Certificate Authenticated Session Establishment) with per-device certificates, AES-128-CCM encryption, and secure commissioning via QR code or NFC. Each controller (your phone, hub) gets its own "fabric" credential. Multi-admin is built in -- you can have HomeKit AND Google Home controlling the same device without conflict.</p>
+    </div>
+  </div>
+
+  <h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.05em;margin:2rem 0 1rem;font-size:1.2rem;">Matter Garage Door Timeline</h3>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-year">2022</div>
+      <div class="timeline-text"><strong>Matter 1.0 released</strong> -- Initial device types include lights, switches, sensors. Garage door controller type defined but no certified products yet.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2023</div>
+      <div class="timeline-text"><strong>Matter 1.2</strong> -- Adds explicit "Barrier/Garage Door" device type with open/close/stop commands and safety features (obstruction detection reporting). Chamberlain announces myQ API lockdown, driving demand for alternatives.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2024</div>
+      <div class="timeline-text"><strong>First Matter garage door controllers appear</strong> -- Primarily retrofit devices (similar to ratgdo concept) with Matter over Wi-Fi. ESPHome adds Matter support, enabling DIY Matter garage door controllers on ESP32.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2025</div>
+      <div class="timeline-text"><strong>Thread-based garage door products</strong> -- Meross and other manufacturers release Thread-enabled controllers. Native opener integration (not relay-based) begins appearing from smaller manufacturers.</div>
+    </div>
+    <div class="timeline-item future">
+      <div class="timeline-year">2026+</div>
+      <div class="timeline-text"><strong>Native Matter in openers</strong> -- Major manufacturers expected to include Matter/Thread radios directly in new openers, eliminating the need for retrofit devices entirely. The endgame: buy any opener, it works with any platform, locally, out of the box.</div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h4>What This Means for Homeowners</h4>
+    <p>If you're buying a new opener today, check for Matter compatibility -- it future-proofs your investment. If you have an existing opener, a Matter-over-Wi-Fi or Matter-over-Thread retrofit device will provide universal smart home integration without locking you into any single ecosystem. The days of "works with Alexa but not HomeKit" are ending.</p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 4 + 5: JAVASCRIPT                               -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<script>
+// ═══════════════════════════════
+// 4.1 OSCILLOSCOPE WAVEFORM
+// ═══════════════════════════════
+(function() {
+  var canvas = document.getElementById('scopeCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  var currentWatts = 8;
+  var currentSignalType = 'remote';
+  var time = 0;
+
+  var profiles = {
+    0:  { noiseFloor: -85, signalPeak: -42, snr: 43, range: 50, status: 'OK' },
+    5:  { noiseFloor: -72, signalPeak: -42, snr: 30, range: 45, status: 'OK' },
+    8:  { noiseFloor: -58, signalPeak: -42, snr: 16, range: 35, status: 'Marginal' },
+    12: { noiseFloor: -46, signalPeak: -42, snr: -4, range: 15, status: 'Degraded' },
+    15: { noiseFloor: -38, signalPeak: -42, snr: -12, range: 3,  status: 'Failed' }
+  };
+
+  function resize() {
+    var rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * Math.min(window.devicePixelRatio, 2);
+    canvas.height = rect.height * Math.min(window.devicePixelRatio, 2);
+  }
+
+  function drawScope() {
+    requestAnimationFrame(drawScope);
+    time += 0.02;
+    resize();
+
+    var w = canvas.width;
+    var h = canvas.height;
+    var pr = profiles[currentWatts];
+
+    // Fade effect for phosphor persistence
+    ctx.fillStyle = 'rgba(10,15,10,0.15)';
+    ctx.fillRect(0, 0, w, h);
+
+    var midY = h * 0.5;
+    var signalAmplitude = h * 0.25;
+    var noiseAmplitude = h * 0.25 * Math.max(0, (pr.noiseFloor + 85) / 50);
+
+    // Draw noise trace (red)
+    ctx.strokeStyle = 'rgba(239,68,68,' + Math.min(0.8, noiseAmplitude / (h * 0.2)) + ')';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (var x = 0; x < w; x++) {
+      var t = x / w * 20 + time * 3;
+      var noise = 0;
+      for (var k = 1; k <= 8; k++) {
+        noise += Math.sin(t * k * 3.7 + k * 1.3) / k;
+        noise += Math.sin(t * k * 5.1 + k * 2.7) / (k * 1.5);
+      }
+      noise += (Math.sin(t * 47.3) * Math.sin(t * 31.7)) * 0.4;
+      var ny = midY + noise * noiseAmplitude * 0.3;
+      if (x === 0) ctx.moveTo(x, ny);
+      else ctx.lineTo(x, ny);
+    }
+    ctx.stroke();
+
+    // Draw signal trace (green)
+    ctx.strokeStyle = 'rgba(34,197,94,0.9)';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = 'rgba(34,197,94,0.4)';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    for (var x2 = 0; x2 < w; x2++) {
+      var t2 = x2 / w * 20 + time * 5;
+      var sig = Math.sin(t2 * 8) * 0.8;
+      var envelope = 0.5 + 0.5 * Math.sign(Math.sin(t2 * 0.5 + time));
+      sig *= envelope;
+      var effectiveAmp = signalAmplitude * 0.4 * Math.max(0.1, 1 - noiseAmplitude / (h * 0.2));
+      var sy = midY + sig * effectiveAmp;
+      if (x2 === 0) ctx.moveTo(x2, sy);
+      else ctx.lineTo(x2, sy);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Center reference line
+    ctx.strokeStyle = 'rgba(0,255,0,0.1)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 8]);
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  window.updateScope = function(watts) {
+    currentWatts = parseInt(watts);
+    var pr = profiles[currentWatts];
+
+    document.getElementById('scopeSigLevel').textContent = pr.signalPeak + ' dBm';
+    document.getElementById('scopeNoiseLevel').textContent = pr.noiseFloor + ' dBm';
+
+    var snrEl = document.getElementById('scopeSNR');
+    snrEl.textContent = pr.snr + ' dB';
+    snrEl.className = 'snr-value ' + (pr.snr > 20 ? 'snr-good' : pr.snr > 0 ? 'snr-warn' : 'snr-bad');
+
+    document.getElementById('scopeRange').textContent = pr.range;
+    document.getElementById('scopeFloor').textContent = pr.noiseFloor;
+    document.getElementById('scopeSNRReadout').textContent = pr.snr;
+
+    var statusEl = document.getElementById('scopeStatus');
+    statusEl.textContent = pr.status;
+    statusEl.style.color = pr.snr > 20 ? 'var(--success)' : pr.snr > 0 ? 'var(--accent2)' : 'var(--danger)';
+  };
+
+  window.updateScopeSignal = function(type) {
+    currentSignalType = type;
+  };
+
+  drawScope();
+})();
+
+
+// ═══════════════════════════════
+// 4.2 LED BULB CUTAWAY
+// ═══════════════════════════════
+(function() {
+  var canvas = document.getElementById('ledCutawayCanvas');
+  if (!canvas) return;
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  camera.position.set(4, 3, 5);
+  camera.lookAt(0, 0, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  var bulbGroup = new THREE.Group();
+  scene.add(bulbGroup);
+
+  // Edison screw base
+  var baseMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.2 });
+  var base = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 0.8, 16), baseMat);
+  base.position.y = -1.4;
+  bulbGroup.add(base);
+
+  // Thread ridges on base
+  for (var i = 0; i < 5; i++) {
+    var ridge = new THREE.Mesh(
+      new THREE.TorusGeometry(0.42, 0.02, 4, 16),
+      baseMat
+    );
+    ridge.position.y = -1.1 + i * 0.15;
+    ridge.rotation.x = Math.PI / 2;
+    bulbGroup.add(ridge);
+  }
+
+  // Driver PCB (EMI source)
+  var pcbMat = new THREE.MeshStandardMaterial({ color: 0x1a5c1a, metalness: 0.3, roughness: 0.6 });
+  var pcb = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.06, 16), pcbMat);
+  pcb.position.y = -0.7;
+  bulbGroup.add(pcb);
+
+  // MOSFET
+  var mosfetMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.5, roughness: 0.3 });
+  var mosfet = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.08), mosfetMat);
+  mosfet.position.set(0.15, -0.65, 0.1);
+  bulbGroup.add(mosfet);
+
+  // Inductor (toroid)
+  var inductorMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.4, roughness: 0.5 });
+  var inductor = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.03, 8, 12), inductorMat);
+  inductor.position.set(-0.1, -0.63, 0.05);
+  inductor.rotation.x = Math.PI / 2;
+  bulbGroup.add(inductor);
+
+  // Capacitors
+  var capMat = new THREE.MeshStandardMaterial({ color: 0x1a1a6a, metalness: 0.3, roughness: 0.4 });
+  var cap1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.15, 8), capMat);
+  cap1.position.set(0.2, -0.6, -0.1);
+  bulbGroup.add(cap1);
+  var cap2 = cap1.clone();
+  cap2.position.set(-0.15, -0.6, -0.15);
+  bulbGroup.add(cap2);
+
+  // Heat sink fins
+  var heatSinkMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.7, roughness: 0.3 });
+  for (var fi = 0; fi < 8; fi++) {
+    var angle = (fi / 8) * Math.PI * 2;
+    var fin = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.6, 0.35), heatSinkMat);
+    fin.position.set(Math.cos(angle) * 0.45, -0.1, Math.sin(angle) * 0.45);
+    fin.rotation.y = -angle;
+    bulbGroup.add(fin);
+  }
+
+  // Heat sink body
+  var heatBody = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.4, 0.5, 16), heatSinkMat);
+  heatBody.position.y = -0.1;
+  bulbGroup.add(heatBody);
+
+  // LED array board
+  var ledBoardMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, metalness: 0.3, roughness: 0.5 });
+  var ledBoard = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.04, 16), ledBoardMat);
+  ledBoard.position.y = 0.2;
+  bulbGroup.add(ledBoard);
+
+  // Individual LEDs
+  var ledMat = new THREE.MeshStandardMaterial({
+    color: 0xffee00, metalness: 0.2, roughness: 0.3,
+    emissive: 0xffee00, emissiveIntensity: 0.5
+  });
+  for (var li = 0; li < 12; li++) {
+    var la = (li / 12) * Math.PI * 2;
+    var led = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.04), ledMat);
+    led.position.set(Math.cos(la) * 0.25, 0.23, Math.sin(la) * 0.25);
+    led.rotation.y = -la;
+    bulbGroup.add(led);
+  }
+
+  // Diffuser dome
+  var domeMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, metalness: 0, roughness: 0.1,
+    transparent: true, opacity: 0.25, side: THREE.DoubleSide
+  });
+  var dome = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.6), domeMat);
+  dome.position.y = 0.45;
+  bulbGroup.add(dome);
+
+  // EMI radiation rings
+  var emiRings = [];
+  for (var ei = 0; ei < 5; ei++) {
+    var emiMat = new THREE.MeshStandardMaterial({
+      color: 0xef4444, transparent: true, opacity: 0.2,
+      emissive: 0xef4444, emissiveIntensity: 0.4, side: THREE.DoubleSide
+    });
+    var ring = new THREE.Mesh(new THREE.TorusGeometry(0.5 + ei * 0.3, 0.01, 8, 32), emiMat);
+    ring.position.y = -0.7;
+    ring.rotation.x = Math.PI * 0.3;
+    ring.rotation.z = ei * 0.2;
+    ring.visible = true;
+    bulbGroup.add(ring);
+    emiRings.push(ring);
+  }
+
+  var showEMI = true;
+  var exploded = false;
+  var timeL = 0;
+
+  window.toggleLedCutawayEMI = function() {
+    showEMI = !showEMI;
+    emiRings.forEach(function(r) { r.visible = showEMI; });
+  };
+
+  window.toggleLedCutawayExplode = function() {
+    exploded = !exploded;
+    var offset = exploded ? 1 : 0;
+    dome.position.y = 0.45 + offset * 1.2;
+    ledBoard.position.y = 0.2 + offset * 0.6;
+    heatBody.position.y = -0.1;
+    pcb.position.y = -0.7 - offset * 0.5;
+    base.position.y = -1.4 - offset * 1;
+  };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    timeL += 0.016;
+    var size = fitRenderer(renderer, canvas);
+    camera.aspect = size.w / size.h;
+    camera.updateProjectionMatrix();
+
+    if (showEMI) {
+      emiRings.forEach(function(ring, i) {
+        var scale = 1 + Math.sin(timeL * 3 - i * 0.8) * 0.3;
+        ring.scale.set(scale, scale, scale);
+        ring.material.opacity = 0.15 + Math.sin(timeL * 3 - i * 0.8) * 0.1;
+        ring.rotation.z += 0.005;
+      });
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+
+// ═══════════════════════════════
+// 4.3 EMI RADIATION PATTERN
+// ═══════════════════════════════
+(function() {
+  var canvas = document.getElementById('emiPatternCanvas');
+  if (!canvas) return;
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(8, 5, 10);
+  camera.lookAt(0, 0, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  // Opener housing
+  var housing = new THREE.Mesh(
+    new THREE.BoxGeometry(3, 0.6, 1.5),
+    new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.7, roughness: 0.3 })
+  );
+  housing.position.y = 2;
+  scene.add(housing);
+
+  // Light socket glow
+  var socketGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 8, 8),
+    new THREE.MeshStandardMaterial({
+      color: 0xffee00, emissive: 0xffee00, emissiveIntensity: 0.8, transparent: true, opacity: 0.6
+    })
+  );
+  socketGlow.position.set(1, 1.5, 0);
+  scene.add(socketGlow);
+
+  // Antenna wire
+  var antennaGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-1.2, 2, 0),
+    new THREE.Vector3(-1.2, -1, 0)
+  ]);
+  scene.add(new THREE.Line(antennaGeo, new THREE.LineBasicMaterial({ color: 0x22c55e })));
+
+  var antennaDot = new THREE.Mesh(
+    new THREE.SphereGeometry(0.06, 6, 6),
+    new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.5 })
+  );
+  antennaDot.position.set(-1.2, -1, 0);
+  scene.add(antennaDot);
+
+  // EMI field spheres
+  var emiSpheres = [];
+  for (var i = 0; i < 6; i++) {
+    var emiSphereMat = new THREE.MeshStandardMaterial({
+      color: 0xef4444, transparent: true, opacity: 0.08,
+      emissive: 0xef4444, emissiveIntensity: 0.2, side: THREE.DoubleSide
+    });
+    var sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5 + i * 0.6, 12, 12), emiSphereMat);
+    sphere.position.set(1, 1.5, 0);
+    scene.add(sphere);
+    emiSpheres.push(sphere);
+  }
+
+  // Remote signal path
+  var signalPath = [];
+  for (var si = 0; si < 4; si++) {
+    var signalMat = new THREE.MeshStandardMaterial({
+      color: 0x22c55e, transparent: true, opacity: 0.4,
+      emissive: 0x22c55e, emissiveIntensity: 0.5
+    });
+    var sRing = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.015, 8, 16), signalMat);
+    sRing.position.set(-6 + si * 1.5, 0, 5 - si * 1.5);
+    sRing.lookAt(-1.2, -1, 0);
+    scene.add(sRing);
+    signalPath.push(sRing);
+  }
+
+  // Remote fob
+  var remote = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.5, 0.1),
+    new THREE.MeshStandardMaterial({ color: 0xffa733, metalness: 0.3, roughness: 0.5 })
+  );
+  remote.position.set(-6, 0, 5);
+  scene.add(remote);
+
+  // Floor
+  var floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.1, roughness: 0.9 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -2;
+  scene.add(floor);
+
+  var bulbOn = true;
+  var timeE = 0;
+
+  window.toggleEMIBulb = function(on) {
+    bulbOn = on;
+    socketGlow.visible = on;
+    document.getElementById('emiBulbOnBtn').classList.toggle('active', on);
+    document.getElementById('emiBulbOffBtn').classList.toggle('active', !on);
+    document.getElementById('emiAtAntenna').textContent = on ? '-28 dBm' : '-82 dBm';
+  };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    timeE += 0.016;
+    var size = fitRenderer(renderer, canvas);
+    camera.aspect = size.w / size.h;
+    camera.updateProjectionMatrix();
+
+    emiSpheres.forEach(function(s, i) {
+      if (bulbOn) {
+        var pulse = 1 + Math.sin(timeE * 2 - i * 0.6) * 0.15;
+        s.scale.set(pulse, pulse, pulse);
+        s.material.opacity = Math.max(0, 0.08 - i * 0.01) * (0.7 + Math.sin(timeE * 2 - i * 0.6) * 0.3);
+        s.visible = true;
+      } else {
+        s.visible = false;
+      }
+    });
+
+    signalPath.forEach(function(ring, i) {
+      var scale = 1 + Math.sin(timeE * 3 - i * 0.5) * 0.2;
+      ring.scale.set(scale, scale, scale);
+      ring.material.opacity = 0.3 + Math.sin(timeE * 3 - i * 0.5) * 0.15;
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+
+// ═══════════════════════════════
+// 4.4 ANTENNA WIRE DEMO
+// ═══════════════════════════════
+(function() {
+  var canvas = document.getElementById('antennaCanvas');
+  if (!canvas) return;
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  camera.position.set(5, 3, 6);
+  camera.lookAt(0, 0, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  // Opener housing
+  var housing = new THREE.Mesh(
+    new THREE.BoxGeometry(2.5, 0.5, 1.2),
+    new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.7, roughness: 0.3 })
+  );
+  housing.position.y = 1.5;
+  scene.add(housing);
+
+  var antennaGroup = new THREE.Group();
+  scene.add(antennaGroup);
+
+  // Signal strength rings
+  var signalRings = [];
+  for (var ri = 0; ri < 4; ri++) {
+    var signalRingMat = new THREE.MeshStandardMaterial({
+      color: 0x22c55e, transparent: true, opacity: 0.2,
+      emissive: 0x22c55e, emissiveIntensity: 0.3
+    });
+    var sRing = new THREE.Mesh(new THREE.TorusGeometry(0.5 + ri * 0.4, 0.01, 8, 24), signalRingMat);
+    sRing.position.set(-1.0, 0, 0);
+    sRing.rotation.y = Math.PI / 2;
+    scene.add(sRing);
+    signalRings.push(sRing);
+  }
+
+  var modes = {
+    straight: { signal: 100, range: 50, config: 'Optimal', color: 'var(--success)' },
+    coiled:   { signal: 40,  range: 20, config: 'Poor',    color: 'var(--accent2)' },
+    cut:      { signal: 25,  range: 12, config: 'Bad',     color: 'var(--accent)' },
+    tucked:   { signal: 15,  range: 5,  config: 'Terrible',color: 'var(--danger)' }
+  };
+
+  function buildAntenna(mode) {
+    while (antennaGroup.children.length) {
+      var child = antennaGroup.children[0];
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+      antennaGroup.remove(child);
+    }
+
+    var wireMat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, metalness: 0.5, roughness: 0.3 });
+
+    if (mode === 'straight') {
+      var wire = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 2.5, 6), wireMat);
+      wire.position.set(-1.0, 0.25, 0);
+      antennaGroup.add(wire);
+    } else if (mode === 'coiled') {
+      var pts = [];
+      for (var t = 0; t < Math.PI * 8; t += 0.2) {
+        pts.push(new THREE.Vector3(Math.cos(t) * 0.15, t * 0.03 + 0.8, Math.sin(t) * 0.15));
+      }
+      var curve = new THREE.CatmullRomCurve3(pts);
+      var coil = new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.012, 6, false), wireMat);
+      coil.position.set(-1.0, 0, 0);
+      antennaGroup.add(coil);
+    } else if (mode === 'cut') {
+      var shortWire = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.8, 6), wireMat);
+      shortWire.position.set(-1.0, 1.1, 0);
+      antennaGroup.add(shortWire);
+      var fray = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4, 4), wireMat);
+      fray.position.set(-1.0, 0.7, 0);
+      antennaGroup.add(fray);
+    } else if (mode === 'tucked') {
+      var tPts = [
+        new THREE.Vector3(0, 1.5, 0),
+        new THREE.Vector3(0.2, 1.6, 0.3),
+        new THREE.Vector3(0.8, 1.7, 0.5),
+        new THREE.Vector3(1.0, 1.5, 0.6),
+        new THREE.Vector3(0.8, 1.3, 0.5)
+      ];
+      var tCurve = new THREE.CatmullRomCurve3(tPts);
+      var tucked = new THREE.Mesh(new THREE.TubeGeometry(tCurve, 20, 0.012, 6, false), wireMat);
+      tucked.position.set(-1.0, 0, 0);
+      antennaGroup.add(tucked);
+    }
+  }
+
+  var currentMode = 'straight';
+  buildAntenna('straight');
+  var timeA = 0;
+
+  window.setAntennaMode = function(mode, btn) {
+    currentMode = mode;
+    document.querySelectorAll('.antenna-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    buildAntenna(mode);
+
+    var m = modes[mode];
+    document.getElementById('antennaSignal').textContent = m.signal;
+    document.getElementById('antennaRange').textContent = m.range;
+    var configEl = document.getElementById('antennaConfig');
+    configEl.textContent = m.config;
+    configEl.style.color = m.color;
+
+    signalRings.forEach(function(ring, i) {
+      ring.visible = (m.signal / 100) > (i * 0.25);
+    });
+  };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    timeA += 0.016;
+    var size = fitRenderer(renderer, canvas);
+    camera.aspect = size.w / size.h;
+    camera.updateProjectionMatrix();
+
+    var m = modes[currentMode];
+    signalRings.forEach(function(ring, i) {
+      if (ring.visible) {
+        var scale = 1 + Math.sin(timeA * 2 - i * 0.5) * 0.1;
+        ring.scale.set(scale, scale, scale);
+        ring.material.opacity = 0.15 * (m.signal / 100) + Math.sin(timeA * 2 - i * 0.5) * 0.05;
+      }
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+
+// ═══════════════════════════════
+// 5.1 ROLLING CODE ANIMATION
+// ═══════════════════════════════
+(function() {
+  var canvas = document.getElementById('rollingCodeCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+
+  var counter = 1000;
+  var openerCounter = 1000;
+  var animations = [];
+  var statusText = 'Press "Transmit Code" to begin';
+  var statusColor = '#9a9894';
+
+  function resize() {
+    var rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * Math.min(window.devicePixelRatio, 2);
+    canvas.height = rect.height * Math.min(window.devicePixelRatio, 2);
+  }
+
+  function generateCode(count) {
+    var hash = count * 2654435761;
+    hash = ((hash >>> 0) ^ (hash << 13)) >>> 0;
+    return hash.toString(16).toUpperCase().padStart(8, '0');
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r);
+    c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+    c.fill();
+    c.stroke();
+  }
+
+  function draw() {
+    requestAnimationFrame(draw);
+    resize();
+    var w = canvas.width;
+    var h = canvas.height;
+    var dpr = Math.min(window.devicePixelRatio, 2);
+
+    ctx.fillStyle = '#161619';
+    ctx.fillRect(0, 0, w, h);
+
+    var fontSize = 12 * dpr;
+    var titleSize = 14 * dpr;
+    var codeSize = 16 * dpr;
+
+    // Remote (left)
+    var remoteX = w * 0.15;
+    var centerY = h * 0.45;
+
+    ctx.fillStyle = '#2a2a30';
+    ctx.strokeStyle = '#3a3a40';
+    ctx.lineWidth = 1;
+    roundRect(ctx, remoteX - 40 * dpr, centerY - 60 * dpr, 80 * dpr, 120 * dpr, 8 * dpr);
+
+    ctx.fillStyle = '#ff6b2b';
+    ctx.font = '600 ' + titleSize + 'px "Oswald", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('REMOTE', remoteX, centerY - 70 * dpr);
+
+    ctx.fillStyle = '#e8e6e3';
+    ctx.font = fontSize + 'px "JetBrains Mono", monospace';
+    ctx.fillText('Counter:', remoteX, centerY - 20 * dpr);
+
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = '600 ' + codeSize + 'px "JetBrains Mono", monospace';
+    ctx.fillText(counter.toString(), remoteX, centerY + 10 * dpr);
+
+    ctx.fillStyle = '#9a9894';
+    ctx.font = fontSize + 'px "JetBrains Mono", monospace';
+    ctx.fillText('Code:', remoteX, centerY + 40 * dpr);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillText(generateCode(counter), remoteX, centerY + 60 * dpr);
+
+    // Opener (right)
+    var openerX = w * 0.85;
+
+    ctx.fillStyle = '#2a2a30';
+    ctx.strokeStyle = '#3a3a40';
+    roundRect(ctx, openerX - 50 * dpr, centerY - 60 * dpr, 100 * dpr, 120 * dpr, 8 * dpr);
+
+    ctx.fillStyle = '#ff6b2b';
+    ctx.font = '600 ' + titleSize + 'px "Oswald", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('OPENER', openerX, centerY - 70 * dpr);
+
+    ctx.fillStyle = '#e8e6e3';
+    ctx.font = fontSize + 'px "JetBrains Mono", monospace';
+    ctx.fillText('Expected:', openerX, centerY - 20 * dpr);
+
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = '600 ' + codeSize + 'px "JetBrains Mono", monospace';
+    ctx.fillText(openerCounter + '-' + (openerCounter + 256), openerX, centerY + 10 * dpr);
+
+    ctx.fillStyle = '#9a9894';
+    ctx.font = fontSize + 'px "JetBrains Mono", monospace';
+    ctx.fillText('Window: 256 codes', openerX, centerY + 45 * dpr);
+
+    // Flying code animations
+    var now = Date.now();
+    animations = animations.filter(function(a) {
+      var elapsed = (now - a.start) / a.duration;
+      if (elapsed > 1) return false;
+
+      var ax = remoteX + (openerX - remoteX) * elapsed;
+      var ay = centerY + Math.sin(elapsed * Math.PI) * -40 * dpr;
+
+      ctx.fillStyle = a.color;
+      ctx.font = '600 ' + codeSize + 'px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = 1 - elapsed * 0.5;
+      ctx.fillText(a.code, ax, ay);
+      ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = a.color;
+      ctx.lineWidth = 2 * dpr;
+      ctx.setLineDash([4 * dpr, 4 * dpr]);
+      ctx.beginPath();
+      ctx.moveTo(remoteX + 40 * dpr, centerY);
+      ctx.lineTo(ax, ay);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      return true;
+    });
+
+    // Arrow between remote and opener
+    if (animations.length === 0) {
+      ctx.strokeStyle = '#3a3a40';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([6 * dpr, 6 * dpr]);
+      ctx.beginPath();
+      ctx.moveTo(remoteX + 45 * dpr, centerY);
+      ctx.lineTo(openerX - 55 * dpr, centerY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#3a3a40';
+      ctx.beginPath();
+      ctx.moveTo(openerX - 55 * dpr, centerY);
+      ctx.lineTo(openerX - 65 * dpr, centerY - 5 * dpr);
+      ctx.lineTo(openerX - 65 * dpr, centerY + 5 * dpr);
+      ctx.fill();
+    }
+
+    // Status text
+    ctx.fillStyle = statusColor;
+    ctx.font = '600 ' + titleSize + 'px "Oswald", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(statusText, w * 0.5, h * 0.88);
+  }
+
+  window.triggerRollingCode = function(action) {
+    if (action === 'transmit') {
+      counter++;
+      var code = generateCode(counter);
+      animations.push({ code: code, color: '#22c55e', start: Date.now(), duration: 1500 });
+      setTimeout(function() {
+        openerCounter = counter;
+        statusText = 'Code accepted - counter synchronized';
+        statusColor = '#22c55e';
+      }, 1500);
+    } else if (action === 'replay') {
+      var oldCode = generateCode(counter - 1);
+      animations.push({ code: oldCode, color: '#ef4444', start: Date.now(), duration: 1500 });
+      setTimeout(function() {
+        statusText = 'REPLAY REJECTED - code ' + (counter - 1) + ' already used';
+        statusColor = '#ef4444';
+      }, 1500);
+    } else if (action === 'reset') {
+      counter = 1000;
+      openerCounter = 1000;
+      animations = [];
+      statusText = 'Press "Transmit Code" to begin';
+      statusColor = '#9a9894';
+    }
+  };
+
+  window.switchRollingTab = function(btn, tabId) {
+    var tabButtons = document.querySelectorAll('#rollingTabs .tab-btn');
+    tabButtons.forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-sec1').classList.remove('active');
+    document.getElementById('tab-sec2').classList.remove('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+  };
+
+  draw();
+})();
+
+
+// ═══════════════════════════════
+// 5.2 WI-FI ARCHITECTURE
+// ═══════════════════════════════
+(function() {
+  var canvas = document.getElementById('wifiArchCanvas');
+  if (!canvas) return;
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(0, 8, 14);
+  camera.lookAt(0, 0, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  var architectures = {
+    cloud: {
+      nodes: [
+        { label: 'Phone',  pos: [-5, 0, 0], color: 0xffffff, size: [0.5, 0.7, 0.1] },
+        { label: 'Cloud',  pos: [-1.5, 3, 0], color: 0xef4444, size: [1, 0.6, 0.6] },
+        { label: 'Router', pos: [1.5, 0, 0], color: 0x22c55e, size: [0.6, 0.15, 0.4] },
+        { label: 'Opener', pos: [5, 0, 0], color: 0xff6b2b, size: [1, 0.4, 0.6] }
+      ],
+      links: [[0, 1], [1, 2], [2, 3]],
+      color: 0xef4444,
+      latency: '2-5', internet: 'Yes', hops: 4, privacy: 'Low'
+    },
+    local: {
+      nodes: [
+        { label: 'Phone',  pos: [-5, 0, 0], color: 0xffffff, size: [0.5, 0.7, 0.1] },
+        { label: 'Hub',    pos: [-1, 0, 0], color: 0x22c55e, size: [0.5, 0.3, 0.5] },
+        { label: 'Z-Wave', pos: [2, 0, 0],  color: 0x22c55e, size: [0.3, 0.15, 0.3] },
+        { label: 'Opener', pos: [5, 0, 0],  color: 0xff6b2b, size: [1, 0.4, 0.6] }
+      ],
+      links: [[0, 1], [1, 2], [2, 3]],
+      color: 0x22c55e,
+      latency: '<0.5', internet: 'No', hops: 3, privacy: 'High'
+    },
+    matter: {
+      nodes: [
+        { label: 'Phone',   pos: [-5, 0, 0], color: 0xffffff, size: [0.5, 0.7, 0.1] },
+        { label: 'Border Router', pos: [-1, 0, 0], color: 0xa855f7, size: [0.5, 0.3, 0.5] },
+        { label: 'Thread',  pos: [2, 0, 0],  color: 0xa855f7, size: [0.3, 0.15, 0.3] },
+        { label: 'Opener',  pos: [5, 0, 0],  color: 0xff6b2b, size: [1, 0.4, 0.6] }
+      ],
+      links: [[0, 1], [1, 2], [2, 3]],
+      color: 0xa855f7,
+      latency: '<0.3', internet: 'No', hops: 3, privacy: 'High'
+    }
+  };
+
+  var currentArch = 'cloud';
+  var archNodes = [];
+  var archLinks = [];
+  var pulses = [];
+  var archGroup = new THREE.Group();
+  scene.add(archGroup);
+
+  function buildArch(name) {
+    while (archGroup.children.length) {
+      var child = archGroup.children[0];
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+      archGroup.remove(child);
+    }
+    archNodes = [];
+    archLinks = [];
+    pulses = [];
+
+    var arch = architectures[name];
+
+    arch.nodes.forEach(function(n) {
+      var mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(n.size[0], n.size[1], n.size[2]),
+        new THREE.MeshStandardMaterial({ color: n.color, metalness: 0.3, roughness: 0.5 })
+      );
+      mesh.position.set(n.pos[0], n.pos[1], n.pos[2]);
+      archGroup.add(mesh);
+      archNodes.push(mesh);
+    });
+
+    arch.links.forEach(function(link) {
+      var nodeA = arch.nodes[link[0]];
+      var nodeB = arch.nodes[link[1]];
+      var pts = [
+        new THREE.Vector3(nodeA.pos[0], nodeA.pos[1], nodeA.pos[2]),
+        new THREE.Vector3(nodeB.pos[0], nodeB.pos[1], nodeB.pos[2])
+      ];
+      var geo = new THREE.BufferGeometry().setFromPoints(pts);
+      var line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+        color: arch.color, transparent: true, opacity: 0.4
+      }));
+      archGroup.add(line);
+      archLinks.push({ line: line, from: pts[0], to: pts[1] });
+
+      var pulse = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08, 8, 8),
+        new THREE.MeshStandardMaterial({ color: arch.color, emissive: arch.color, emissiveIntensity: 0.6 })
+      );
+      pulse.position.copy(pts[0]);
+      archGroup.add(pulse);
+      pulses.push({ mesh: pulse, from: pts[0], to: pts[1], speed: 0.3 + Math.random() * 0.2, t: Math.random() });
+    });
+
+    // Floor
+    var floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(14, 8),
+      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.1, roughness: 0.9 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -1;
+    archGroup.add(floor);
+
+    // Update readouts
+    document.getElementById('archLatency').textContent = arch.latency;
+    var internetEl = document.getElementById('archInternet');
+    internetEl.textContent = arch.internet;
+    internetEl.style.color = arch.internet === 'Yes' ? 'var(--danger)' : 'var(--success)';
+    document.getElementById('archHops').textContent = arch.hops;
+    var privacyEl = document.getElementById('archPrivacy');
+    privacyEl.textContent = arch.privacy;
+    privacyEl.style.color = arch.privacy === 'High' ? 'var(--success)' : 'var(--danger)';
+  }
+
+  window.setArchMode = function(mode, btn) {
+    currentArch = mode;
+    document.querySelectorAll('#wifi-architecture .ctrl-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    buildArch(mode);
+  };
+
+  buildArch('cloud');
+
+  var timeW = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    timeW += 0.016;
+    var size = fitRenderer(renderer, canvas);
+    camera.aspect = size.w / size.h;
+    camera.updateProjectionMatrix();
+
+    pulses.forEach(function(p) {
+      p.t += p.speed * 0.016;
+      if (p.t > 1) p.t -= 1;
+      p.mesh.position.lerpVectors(p.from, p.to, p.t);
+    });
+
+    archNodes.forEach(function(n, i) {
+      n.position.y = architectures[currentArch].nodes[i].pos[1] + Math.sin(timeW * 1.5 + i) * 0.05;
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+
+// ═══════════════════════════════
+// 5.3 RETROFIT COMPARISON TOOL
+// ═══════════════════════════════
+(function() {
+  var grid = document.getElementById('retrofitGrid');
+  if (!grid) return;
+
+  var devices = [
+    {
+      name: 'Meross Smart Garage Opener',
+      price: '$30',
+      protocols: ['wifi'],
+      control: 'cloud',
+      ecosystems: 'HomeKit, Alexa, Google Home',
+      desc: 'Wi-Fi relay with tilt sensor. Native HomeKit support via Apple certification. Cloud for Alexa/Google. Simple installation -- wires to wall button terminals.',
+      local: false
+    },
+    {
+      name: 'Tailwind iQ3',
+      price: '$80',
+      protocols: ['wifi'],
+      control: 'cloud',
+      ecosystems: 'HomeKit, Alexa, Google Home',
+      desc: 'Supports up to 3 doors with one device. Vehicle detection via Bluetooth. Built-in camera support. Good HomeKit integration with local fallback for basic open/close.',
+      local: false
+    },
+    {
+      name: 'myQ Smart Garage Hub',
+      price: '$30',
+      protocols: ['wifi'],
+      control: 'cloud',
+      ecosystems: 'Alexa, Google Home (limited)',
+      desc: 'Chamberlain/LiftMaster official retrofit. Cloud-only, no local API. Third-party access restricted since 2023. Requires subscription for some features. HomeKit requires separate $70 bridge.',
+      local: false
+    },
+    {
+      name: 'Ratgdo v2.5',
+      price: '$35',
+      protocols: ['mqtt'],
+      control: 'local',
+      ecosystems: 'Home Assistant, MQTT brokers',
+      desc: 'Open-source ESP-based board. Taps Security+ 2.0 serial bus for native door state. MQTT or ESPHome firmware. Full local control, no cloud, no subscriptions. True status feedback.',
+      local: true
+    },
+    {
+      name: 'GoControl GD00Z-4',
+      price: '$45',
+      protocols: ['zwave'],
+      control: 'local',
+      ecosystems: 'SmartThings, Hubitat, Z-Wave hubs',
+      desc: 'Z-Wave Plus relay with tilt sensor. Requires Z-Wave hub. Full local control, no internet dependency. 500ft+ Z-Wave range. Discontinued but still available; Zooz is the successor.',
+      local: true
+    },
+    {
+      name: 'Zooz ZEN16 MultiRelay',
+      price: '$35',
+      protocols: ['zwave'],
+      control: 'local',
+      ecosystems: 'SmartThings, Hubitat, Z-Wave hubs',
+      desc: 'Z-Wave Plus 700 series multi-relay. Not garage-specific but works great with added tilt sensor. 3 dry-contact relays for up to 3 doors. S2 security. Full local control via hub.',
+      local: true
+    }
+  ];
+
+  function renderCards(filter) {
+    // Clear grid safely
+    while (grid.firstChild) {
+      grid.removeChild(grid.firstChild);
+    }
+
+    devices.forEach(function(d) {
+      var show = true;
+      if (filter && filter !== 'all') {
+        if (filter === 'local') show = d.local;
+        else if (filter === 'cloud') show = !d.local;
+        else show = d.protocols.indexOf(filter) !== -1;
+      }
+
+      var card = document.createElement('div');
+      card.className = 'retrofit-card' + (show ? '' : ' hidden');
+
+      // Build card content safely using DOM methods
+      var h4 = document.createElement('h4');
+      h4.textContent = d.name;
+      card.appendChild(h4);
+
+      var priceDiv = document.createElement('div');
+      priceDiv.className = 'price';
+      priceDiv.textContent = d.price;
+      card.appendChild(priceDiv);
+
+      var tagsDiv = document.createElement('div');
+      tagsDiv.className = 'tags';
+      d.protocols.forEach(function(p) {
+        var tag = document.createElement('span');
+        tag.className = 'retrofit-tag ' + p;
+        tag.textContent = p.toUpperCase();
+        tagsDiv.appendChild(tag);
+      });
+      var controlTag = document.createElement('span');
+      controlTag.className = 'retrofit-tag ' + (d.local ? 'local' : 'cloud');
+      controlTag.textContent = d.local ? 'LOCAL' : 'CLOUD';
+      tagsDiv.appendChild(controlTag);
+      card.appendChild(tagsDiv);
+
+      var descP = document.createElement('p');
+      descP.textContent = d.desc;
+      card.appendChild(descP);
+
+      var compatDiv = document.createElement('div');
+      compatDiv.className = 'compat';
+      compatDiv.textContent = d.ecosystems;
+      card.appendChild(compatDiv);
+
+      grid.appendChild(card);
+    });
+  }
+
+  window.filterRetrofit = function(filter, btn) {
+    document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderCards(filter);
+  };
+
+  renderCards('all');
+})();
+
+
+// ═══════════════════════════════
+// 5.4 RATGDO WIRING SCENE
+// ═══════════════════════════════
+(function() {
+  var canvas = document.getElementById('ratgdoCanvas');
+  if (!canvas) return;
+  var renderer = makeRenderer(canvas);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  camera.position.set(6, 4, 8);
+  camera.lookAt(0, 0.5, 0);
+  addLights(scene);
+  makeOrbitLike(camera, canvas);
+
+  // Opener body
+  var openerMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.6, roughness: 0.3 });
+  var opener = new THREE.Mesh(new THREE.BoxGeometry(3, 0.6, 1.5), openerMat);
+  opener.position.set(-1, 1.5, 0);
+  scene.add(opener);
+
+  // Ratgdo board
+  var boardMat = new THREE.MeshStandardMaterial({ color: 0x1a6b1a, metalness: 0.3, roughness: 0.5 });
+  var board = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.08), boardMat);
+  board.position.set(2.5, 1.2, 0);
+  scene.add(board);
+
+  // ESP chip
+  var chipMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.5, roughness: 0.3 });
+  var chip = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.04), chipMat);
+  chip.position.set(2.5, 1.2, 0.06);
+  scene.add(chip);
+
+  // Status LED
+  var statusLed = new THREE.Mesh(
+    new THREE.SphereGeometry(0.03, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.8 })
+  );
+  statusLed.position.set(2.7, 1.3, 0.06);
+  scene.add(statusLed);
+
+  // Wires
+  var wireColors = [
+    { color: 0xff3333, yOff: 0.05 },
+    { color: 0xffffff, yOff: 0 },
+    { color: 0x333333, yOff: -0.05 }
+  ];
+
+  wireColors.forEach(function(w) {
+    var pts = [
+      new THREE.Vector3(0.5, 1.5 + w.yOff, 0),
+      new THREE.Vector3(1.2, 1.3 + w.yOff, 0.2),
+      new THREE.Vector3(1.8, 1.2 + w.yOff, 0.1),
+      new THREE.Vector3(2.1, 1.2 + w.yOff, 0)
+    ];
+    var curve = new THREE.CatmullRomCurve3(pts);
+    var wireMesh = new THREE.Mesh(
+      new THREE.TubeGeometry(curve, 16, 0.012, 6, false),
+      new THREE.MeshStandardMaterial({ color: w.color, metalness: 0.3, roughness: 0.5 })
+    );
+    scene.add(wireMesh);
+  });
+
+  // Wi-Fi rings
+  var wifiRings = [];
+  for (var wi = 0; wi < 3; wi++) {
+    var wifiMat = new THREE.MeshStandardMaterial({
+      color: 0x22d3ee, transparent: true, opacity: 0.2,
+      emissive: 0x22d3ee, emissiveIntensity: 0.3
+    });
+    var wRing = new THREE.Mesh(new THREE.TorusGeometry(0.3 + wi * 0.25, 0.01, 8, 24), wifiMat);
+    wRing.position.set(2.5, 1.8, 0);
+    wRing.rotation.x = Math.PI / 2;
+    scene.add(wRing);
+    wifiRings.push(wRing);
+  }
+
+  // Data pulses
+  var dataPulses = [];
+  for (var di = 0; di < 3; di++) {
+    var pulseMat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 0.8 });
+    var pulse = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), pulseMat);
+    pulse.position.set(0.5 + di * 0.5, 1.5, 0);
+    scene.add(pulse);
+    dataPulses.push({ mesh: pulse, t: di * 0.33 });
+  }
+
+  var timeR = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    timeR += 0.016;
+    var size = fitRenderer(renderer, canvas);
+    camera.aspect = size.w / size.h;
+    camera.updateProjectionMatrix();
+
+    wifiRings.forEach(function(r, i) {
+      var s = 1 + Math.sin(timeR * 2 - i * 0.5) * 0.1;
+      r.scale.set(s, s, s);
+      r.material.opacity = 0.15 + Math.sin(timeR * 2 - i * 0.5) * 0.08;
+    });
+
+    statusLed.material.emissiveIntensity = 0.4 + Math.sin(timeR * 4) * 0.4;
+
+    dataPulses.forEach(function(p) {
+      p.t += 0.008;
+      if (p.t > 1) p.t -= 1;
+      var px = 0.5 + p.t * 1.6;
+      var py = 1.5 - p.t * 0.3;
+      var pz = Math.sin(p.t * Math.PI) * 0.2;
+      p.mesh.position.set(px, py, pz);
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
