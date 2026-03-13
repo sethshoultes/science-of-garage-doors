@@ -19,7 +19,7 @@ import * as THREE from 'three';
 export function makeRenderer(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x0c0c0e, 1);
+  renderer.setClearColor(0x1a1a2e, 1);
   renderer.shadowMap.enabled = true;
   return renderer;
 }

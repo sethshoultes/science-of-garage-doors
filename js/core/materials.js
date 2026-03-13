@@ -25,14 +25,14 @@ export const matSteel = new THREE.MeshStandardMaterial({
 
 /** Dark steel — motor casings, track hardware. */
 export const matDarkSteel = new THREE.MeshStandardMaterial({
-  color: 0x444444,
-  metalness: 0.9,
-  roughness: 0.15,
+  color: 0x606060,
+  metalness: 0.85,
+  roughness: 0.2,
 });
 
 /** Wire / lead material — capacitor leads, misc wiring. */
 export const matWire = new THREE.MeshStandardMaterial({
-  color: 0x555555,
+  color: 0x777777,
   metalness: 0.7,
   roughness: 0.3,
 });
@@ -46,9 +46,9 @@ export const matPanel = new THREE.MeshStandardMaterial({
 
 /** Rubber — belt drive material, weatherstripping. */
 export const matRubber = new THREE.MeshStandardMaterial({
-  color: 0x222222,
+  color: 0x3a3a3a,
   metalness: 0.05,
-  roughness: 0.95,
+  roughness: 0.9,
 });
 
 /** Green indicator — safety sensors, status LEDs. */

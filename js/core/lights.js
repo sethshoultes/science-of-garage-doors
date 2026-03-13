@@ -19,16 +19,16 @@ import * as THREE from 'three';
  */
 export function addLights(scene) {
   // Ambient — soft overall illumination
-  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
   // Key light — directional with shadows
-  const key = new THREE.DirectionalLight(0xffffff, 0.8);
+  const key = new THREE.DirectionalLight(0xffffff, 1.0);
   key.position.set(5, 8, 6);
   key.castShadow = true;
   scene.add(key);
 
   // Fill light — cool blue from opposite side
-  const fill = new THREE.DirectionalLight(0x8888ff, 0.2);
+  const fill = new THREE.DirectionalLight(0xaaaaff, 0.4);
   fill.position.set(-3, 2, -4);
   scene.add(fill);
 }

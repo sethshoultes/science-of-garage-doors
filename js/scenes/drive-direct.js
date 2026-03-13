@@ -55,7 +55,7 @@ export const descriptor = {
     const cableCurve = new THREE.CatmullRomCurve3(cablePts);
     const cable = new THREE.Mesh(
       new THREE.TubeGeometry(cableCurve, 20, 0.02, 6, false),
-      new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.85 })
     );
     scene.add(cable);
 

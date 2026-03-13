@@ -34,10 +34,10 @@ export const descriptor = {
   init(canvas) {
     const renderer = makeRenderer(canvas);
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x0c0c0e, 15, 30);
+    scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50);
-    camera.position.set(6, 3, 8);
-    camera.lookAt(0, 2, 0);
+    camera.position.set(7, 4.5, 11);
+    camera.lookAt(0, 2.5, 0);
 
     addLights(scene);
     makeOrbitLike(camera, canvas);
@@ -45,14 +45,14 @@ export const descriptor = {
     // Floor
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.85 })
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
     // Frame
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.6 });
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.5, roughness: 0.5 });
     // Left post
     const lp = new THREE.Mesh(new THREE.BoxGeometry(0.15, 5, 0.15), frameMat);
     lp.position.set(-2.5, 2.5, 0);
