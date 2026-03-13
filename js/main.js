@@ -28,6 +28,7 @@ import { descriptor as chainDriveScene } from './scenes/drive-chain.js';
 import { descriptor as beltDriveScene } from './scenes/drive-belt.js';
 import { descriptor as screwDriveScene } from './scenes/drive-screw.js';
 import { descriptor as directDriveScene } from './scenes/drive-direct.js';
+import { descriptor as extensionSpringsScene } from './scenes/extension-springs.js';
 
 /**
  * All scene descriptors to register with SceneManager.
@@ -42,6 +43,7 @@ const SCENES = [
   beltDriveScene,
   screwDriveScene,
   directDriveScene,
+  extensionSpringsScene,
 ];
 
 /**
