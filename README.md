@@ -2,9 +2,7 @@
 
 A comprehensive interactive educational experience covering garage door physics, spring engineering, drive system mechanics, motor internals, smart home integration, and electromagnetic interference.
 
-**[Version 1 — Try it live](https://sethshoultes.github.io/science-of-garage-doors/)**
-
-**[Version 2 — Try it live](https://sethshoultes.github.io/science-of-garage-doors/garage-door-science-v2.html)**
+**[Try it live](https://sethshoultes.github.io/science-of-garage-doors/)**
 
 ## What's Inside
 
