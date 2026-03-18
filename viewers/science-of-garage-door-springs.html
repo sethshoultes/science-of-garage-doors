@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Science of Garage Door Springs</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+3:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b10;
+    --surface: #12131a;
+    --surface2: #1a1b25;
+    --danger: #ff2a2a;
+    --danger-glow: #ff4444;
+    --energy: #00e87b;
+    --energy-dim: #00a858;
+    --accent: #f59e0b;
+    --accent2: #3b82f6;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --text-bright: #ffffff;
+    --border: #2a2b38;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Sans 3', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.65;
+  }
+
+  /* === HERO === */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    padding: 2rem;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 45%, rgba(255, 42, 42, 0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 50% at 50% 100%, rgba(255, 42, 42, 0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--danger);
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--danger);
+    margin-bottom: 2rem;
+    animation: fadeIn 0.8s ease both;
+  }
+
+  .hero-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--danger);
+    border-radius: 50%;
+    animation: pulse-dot 1.5s ease infinite;
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 8rem);
+    line-height: 0.95;
+    letter-spacing: 0.02em;
+    color: var(--text-bright);
+    animation: fadeIn 1s ease 0.2s both;
+  }
+
+  .hero h1 span {
+    display: block;
+    background: linear-gradient(135deg, var(--danger), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    max-width: 520px;
+    margin-top: 1.5rem;
+    font-weight: 300;
+    animation: fadeIn 1s ease 0.4s both;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+    animation: fadeIn 1.2s ease 0.8s both;
+  }
+
+  .scroll-hint .arrow {
+    width: 20px; height: 20px;
+    border-right: 2px solid var(--text-dim);
+    border-bottom: 2px solid var(--text-dim);
+    transform: rotate(45deg);
+    animation: bounce-arrow 2s ease infinite;
+  }
+
+  /* === SPRING SVG DIAGRAM === */
+  .spring-diagram {
+    width: 100%;
+    max-width: 700px;
+    margin: 2rem auto 0;
+    animation: fadeIn 1s ease 0.5s both;
+  }
+
+  .spring-coil {
+    stroke: var(--text-dim);
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    animation: draw-spring 2s ease 1s both;
+  }
+
+  .spring-shaft {
+    stroke: #555;
+    stroke-width: 5;
+    fill: none;
+  }
+
+  /* === SECTIONS === */
+  section {
+    padding: 5rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    color: var(--text-bright);
+    line-height: 1.05;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-body {
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    max-width: 650px;
+    font-weight: 300;
+  }
+
+  /* === STATS GRID === */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin: 3rem 0;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.8rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--energy));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .stat-card:hover::before { opacity: 1; }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem;
+    line-height: 1;
+    color: var(--text-bright);
+  }
+
+  .stat-value .unit {
+    font-size: 1.2rem;
+    color: var(--text-dim);
+    margin-left: 0.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+    font-weight: 300;
+    opacity: 0.7;
+  }
+
+  /* === ENERGY COMPARISON === */
+  .energy-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 3rem 2.5rem;
+    margin: 3rem 0;
+  }
+
+  .energy-bar-group {
+    margin-top: 2rem;
+  }
+
+  .energy-bar-row {
+    margin-bottom: 1.5rem;
+  }
+
+  .energy-bar-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+
+  .energy-bar-label .name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+
+  .energy-bar-label .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .energy-bar-track {
+    height: 28px;
+    background: var(--surface2);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .energy-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+    width: 0%;
+  }
+
+  .energy-bar-fill.animate { /* set via JS */ }
+
+  .bar-spring { background: linear-gradient(90deg, var(--danger), var(--accent)); }
+  .bar-baseball { background: linear-gradient(90deg, var(--accent2), #60a5fa); }
+  .bar-bullet { background: linear-gradient(90deg, #a855f7, #c084fc); }
+  .bar-bowling { background: linear-gradient(90deg, var(--energy-dim), var(--energy)); }
+
+  /* === ANATOMY DIAGRAM === */
+  .anatomy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+    margin: 3rem 0;
+  }
+
+  @media (max-width: 768px) {
+    .anatomy { grid-template-columns: 1fr; }
+  }
+
+  .anatomy-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .anatomy-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .anatomy-list li {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .anatomy-num {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .anatomy-text strong {
+    display: block;
+    color: var(--text-bright);
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .anatomy-text span {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  /* === DANGER ZONE === */
+  .danger-zone {
+    border: 2px solid var(--danger);
+    border-radius: 16px;
+    padding: 3rem 2.5rem;
+    margin: 3rem 0;
+    position: relative;
+    background: linear-gradient(135deg, rgba(255, 42, 42, 0.04), transparent);
+  }
+
+  .danger-zone::before {
+    content: '⚠';
+    position: absolute;
+    top: -18px; left: 2rem;
+    background: var(--bg);
+    padding: 0 0.8rem;
+    font-size: 1.6rem;
+  }
+
+  .danger-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .danger-card {
+    background: rgba(255, 42, 42, 0.06);
+    border: 1px solid rgba(255, 42, 42, 0.15);
+    border-radius: 10px;
+    padding: 1.5rem;
+    transition: border-color 0.3s ease;
+  }
+
+  .danger-card:hover {
+    border-color: var(--danger);
+  }
+
+  .danger-card .icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .danger-card h4 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    color: var(--danger);
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.03em;
+  }
+
+  .danger-card p {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+
+  /* === FORCE SIMULATION === */
+  .sim-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem;
+    margin: 3rem 0;
+  }
+
+  .sim-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .sim-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .sim-controls label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .sim-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 200px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface2);
+    outline: none;
+  }
+
+  .sim-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  .sim-readout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .readout-item {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .readout-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--energy);
+    transition: color 0.3s ease;
+  }
+
+  .readout-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.3rem;
+  }
+
+  /* Spring visual in sim */
+  .sim-spring-visual {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: 1rem 0;
+  }
+
+  .sim-spring-svg {
+    width: 100%;
+    max-width: 500px;
+    height: 80px;
+  }
+
+  /* === FOOTER === */
+  .footer-cta {
+    text-align: center;
+    padding: 4rem 2rem 6rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .footer-cta .cta-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    color: var(--text-bright);
+    margin-bottom: 1rem;
+  }
+
+  .footer-cta p {
+    color: var(--text-dim);
+    font-weight: 300;
+    font-size: 1.05rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .cta-price {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--energy-dim);
+    border-radius: 10px;
+    padding: 1rem 2rem;
+  }
+
+  .cta-price .amount {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--energy);
+  }
+
+  .cta-price .label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .vs-text {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 0.8rem;
+    font-style: italic;
+  }
+
+  /* === ANIMATIONS === */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  @keyframes bounce-arrow {
+    0%, 100% { transform: rotate(45deg) translateY(0); }
+    50% { transform: rotate(45deg) translateY(6px); }
+  }
+
+  @keyframes draw-spring {
+    from { stroke-dashoffset: 1000; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  .fade-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Divider */
+  .divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--danger), var(--accent));
+    border-radius: 2px;
+    margin: 4rem auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== HERO ====== -->
+<div class="hero">
+  <div class="hero-badge"><span class="dot"></span> Educational Safety Presentation</div>
+  <h1>THE SCIENCE OF<span>GARAGE DOOR SPRINGS</span></h1>
+  <p class="hero-sub">The most dangerous mechanical component hiding in every home — and the physics of why you should never touch one.</p>
+
+  <svg class="spring-diagram" viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg">
+    <!-- Shaft -->
+    <line class="spring-shaft" x1="50" y1="60" x2="650" y2="60"/>
+    <!-- Brackets -->
+    <rect x="45" y="40" width="30" height="40" rx="4" fill="#333" stroke="#555" stroke-width="1.5"/>
+    <rect x="625" y="40" width="30" height="40" rx="4" fill="#333" stroke="#555" stroke-width="1.5"/>
+    <!-- Coil path -->
+    <path class="spring-coil" style="stroke-dasharray: 1000;"
+      d="M95,60 C100,20 110,20 115,60 C120,100 130,100 135,60 C140,20 150,20 155,60 C160,100 170,100 175,60 C180,20 190,20 195,60 C200,100 210,100 215,60 C220,20 230,20 235,60 C240,100 250,100 255,60 C260,20 270,20 275,60 C280,100 290,100 295,60 C300,20 310,20 315,60 C320,100 330,100 335,60 C340,20 350,20 355,60 C360,100 370,100 375,60 C380,20 390,20 395,60 C400,100 410,100 415,60 C420,20 430,20 435,60 C440,100 450,100 455,60 C460,20 470,20 475,60 C480,100 490,100 495,60 C500,20 510,20 515,60 C520,100 530,100 535,60 C540,20 550,20 555,60 C560,100 570,100 575,60 C580,20 590,20 595,60 C600,100 610,100 615,60"/>
+    <!-- Glow -->
+    <path class="spring-coil" style="stroke-dasharray: 1000; stroke: rgba(255,68,0,0.15); stroke-width: 12; filter: blur(4px);"
+      d="M95,60 C100,20 110,20 115,60 C120,100 130,100 135,60 C140,20 150,20 155,60 C160,100 170,100 175,60 C180,20 190,20 195,60 C200,100 210,100 215,60 C220,20 230,20 235,60 C240,100 250,100 255,60 C260,20 270,20 275,60 C280,100 290,100 295,60 C300,20 310,20 315,60 C320,100 330,100 335,60 C340,20 350,20 355,60 C360,100 370,100 375,60 C380,20 390,20 395,60 C400,100 410,100 415,60 C420,20 430,20 435,60 C440,100 450,100 455,60 C460,20 470,20 475,60 C480,100 490,100 495,60 C500,20 510,20 515,60 C520,100 530,100 535,60 C540,20 550,20 555,60 C560,100 570,100 575,60 C580,20 590,20 595,60 C600,100 610,100 615,60"/>
+  </svg>
+
+  <div class="scroll-hint">
+    Scroll to explore
+    <div class="arrow"></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ====== HOW IT WORKS ====== -->
+<section>
+  <div class="fade-up">
+    <div class="section-label">01 — Mechanics</div>
+    <h2 class="section-title">How Torsion Springs Work</h2>
+    <p class="section-body">
+      A torsion spring is a tightly wound coil of hardened steel wire wrapped around a metal shaft mounted horizontally above your garage door opening. When the door closes, the spring is wound tighter by cables attached to drums at each end. This winding stores enormous rotational energy — energy that is released to lift the door back up.
+    </p>
+  </div>
+
+  <div class="anatomy fade-up">
+    <div class="anatomy-visual">
+      <svg viewBox="0 0 320 280" width="320" height="280" xmlns="http://www.w3.org/2000/svg">
+        <!-- Wall / header -->
+        <rect x="20" y="10" width="280" height="20" rx="3" fill="#443322" stroke="#665544" stroke-width="1"/>
+        <text x="160" y="24" text-anchor="middle" fill="#998877" font-size="10" font-family="JetBrains Mono, monospace">HEADER WALL</text>
+
+        <!-- Shaft -->
+        <line x1="40" y1="60" x2="280" y2="60" stroke="#666" stroke-width="4" stroke-linecap="round"/>
+
+        <!-- Spring coils -->
+        <path d="M80,60 C83,38 88,38 91,60 C94,82 99,82 102,60 C105,38 110,38 113,60 C116,82 121,82 124,60 C127,38 132,38 135,60 C138,82 143,82 146,60 C149,38 154,38 157,60 C160,82 165,82 168,60 C171,38 176,38 179,60 C182,82 187,82 190,60 C193,38 198,38 201,60 C204,82 209,82 212,60 C215,38 220,38 223,60 C226,82 231,82 234,60" fill="none" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+
+        <!-- Brackets -->
+        <rect x="55" y="45" width="20" height="30" rx="3" fill="#444" stroke="#666" stroke-width="1"/>
+        <rect x="240" y="45" width="20" height="30" rx="3" fill="#444" stroke="#666" stroke-width="1"/>
+
+        <!-- Cable drums -->
+        <circle cx="55" cy="60" r="12" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 2"/>
+        <circle cx="268" cy="60" r="12" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3 2"/>
+
+        <!-- Cables going down -->
+        <line x1="43" y1="70" x2="43" y2="240" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <line x1="280" y1="70" x2="280" y2="240" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+        <!-- Door panels -->
+        <rect x="60" y="100" width="200" height="35" rx="2" fill="#bba" stroke="#998" stroke-width="1"/>
+        <rect x="60" y="140" width="200" height="35" rx="2" fill="#bba" stroke="#998" stroke-width="1"/>
+        <rect x="60" y="180" width="200" height="35" rx="2" fill="#bba" stroke="#998" stroke-width="1"/>
+        <rect x="60" y="220" width="200" height="35" rx="2" fill="#bba" stroke="#998" stroke-width="1"/>
+
+        <!-- Labels with leader lines -->
+        <line x1="160" y1="42" x2="160" y2="15" stroke="#00e87b" stroke-width="0.8" stroke-dasharray="2 2"/>
+        <text x="160" y="43" text-anchor="middle" fill="#00e87b" font-size="8" font-family="JetBrains Mono, monospace">TORSION SPRING</text>
+
+        <text x="55" y="90" text-anchor="middle" fill="#f59e0b" font-size="7" font-family="JetBrains Mono, monospace">CABLE DRUM</text>
+        <text x="268" y="90" text-anchor="middle" fill="#f59e0b" font-size="7" font-family="JetBrains Mono, monospace">CABLE DRUM</text>
+
+        <text x="30" y="160" fill="#f59e0b" font-size="7" font-family="JetBrains Mono, monospace" writing-mode="vertical-rl" text-orientation="mixed" transform="rotate(180,30,160)">CABLE</text>
+
+        <!-- Force arrow -->
+        <path d="M160,260 L160,270 L150,265 M160,270 L170,265" stroke="#ff2a2a" stroke-width="1.5" fill="none"/>
+        <text x="160" y="278" text-anchor="middle" fill="#ff2a2a" font-size="7" font-family="JetBrains Mono, monospace">400 LB DOOR WEIGHT</text>
+      </svg>
+    </div>
+
+    <ul class="anatomy-list">
+      <li>
+        <div class="anatomy-num">01</div>
+        <div class="anatomy-text">
+          <strong>Torsion Spring</strong>
+          <span>Hardened steel wire (typically 0.225"–0.262" diameter) coiled 100–150 times around the shaft. This is where all the energy is stored.</span>
+        </div>
+      </li>
+      <li>
+        <div class="anatomy-num">02</div>
+        <div class="anatomy-text">
+          <strong>Torsion Shaft</strong>
+          <span>A solid steel bar running the width of the garage opening. The spring wraps around it and transfers rotational force to the cable drums.</span>
+        </div>
+      </li>
+      <li>
+        <div class="anatomy-num">03</div>
+        <div class="anatomy-text">
+          <strong>Cable Drums</strong>
+          <span>Grooved wheels at each end of the shaft. As the spring unwinds, the drums wind up the cables, lifting the door evenly.</span>
+        </div>
+      </li>
+      <li>
+        <div class="anatomy-num">04</div>
+        <div class="anatomy-text">
+          <strong>Mounting Brackets</strong>
+          <span>Bolted to the header wall, these anchor the spring under tremendous tension — each bolt holds back thousands of pounds of force.</span>
+        </div>
+      </li>
+      <li>
+        <div class="anatomy-num">05</div>
+        <div class="anatomy-text">
+          <strong>Lift Cables</strong>
+          <span>Steel cables connecting the drums to the bottom of the door. They transfer the spring's rotational energy into vertical lift.</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ====== NUMBERS ====== -->
+<section>
+  <div class="fade-up">
+    <div class="section-label">02 — By the Numbers</div>
+    <h2 class="section-title">The Forces Involved</h2>
+    <p class="section-body">These numbers might look dry on paper — but each one represents a force capable of serious destruction.</p>
+  </div>
+
+  <div class="stats-grid fade-up">
+    <div class="stat-card">
+      <div class="stat-value">28–33<span class="unit">turns</span></div>
+      <div class="stat-label">Full Wind Cycles</div>
+      <div class="stat-desc">Each turn adds ~800 ft-lbs of stored torque to the system</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">200,000<span class="unit">PSI</span></div>
+      <div class="stat-label">Wire Stress at Full Wind</div>
+      <div class="stat-desc">Near the yield strength of the steel — the breaking point</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">~300<span class="unit">RPM</span></div>
+      <div class="stat-label">Shaft Spin on Break</div>
+      <div class="stat-desc">The shaft spins instantly when a spring snaps</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">100+<span class="unit">mph</span></div>
+      <div class="stat-label">Broken Wire Speed</div>
+      <div class="stat-desc">Broken ends whip outward at lethal velocity</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">150–400<span class="unit">lbs</span></div>
+      <div class="stat-label">Door Weight</div>
+      <div class="stat-desc">A standard 2-car insulated door weighs 250–400 lbs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">10,000<span class="unit">cycles</span></div>
+      <div class="stat-label">Standard Lifespan</div>
+      <div class="stat-desc">At 4 cycles/day, that's roughly 7 years before failure risk spikes</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ====== ENERGY COMPARISON ====== -->
+<section>
+  <div class="fade-up">
+    <div class="section-label">03 — Perspective</div>
+    <h2 class="section-title">Stored Energy Compared</h2>
+    <p class="section-body">To understand just how much energy is in a wound torsion spring, compare it to things that move fast and hit hard.</p>
+  </div>
+
+  <div class="energy-section fade-up">
+    <div class="energy-bar-group">
+      <div class="energy-bar-row">
+        <div class="energy-bar-label">
+          <span class="name">⚾ Major League Fastball</span>
+          <span class="val">~120 J</span>
+        </div>
+        <div class="energy-bar-track">
+          <div class="energy-bar-fill bar-baseball" data-width="40"></div>
+        </div>
+      </div>
+      <div class="energy-bar-row">
+        <div class="energy-bar-label">
+          <span class="name">🎳 Bowling Ball (20 mph)</span>
+          <span class="val">~165 J</span>
+        </div>
+        <div class="energy-bar-track">
+          <div class="energy-bar-fill bar-bowling" data-width="55"></div>
+        </div>
+      </div>
+      <div class="energy-bar-row">
+        <div class="energy-bar-label">
+          <span class="name">🔩 Garage Door Torsion Spring</span>
+          <span class="val">~200–300 J</span>
+        </div>
+        <div class="energy-bar-track">
+          <div class="energy-bar-fill bar-spring" data-width="85"></div>
+        </div>
+      </div>
+      <div class="energy-bar-row">
+        <div class="energy-bar-label">
+          <span class="name">🔫 9mm Handgun Round</span>
+          <span class="val">~500 J</span>
+        </div>
+        <div class="energy-bar-track">
+          <div class="energy-bar-fill bar-bullet" data-width="100"></div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-dim); font-weight: 300;">
+      A wound garage door spring stores more energy than a professional pitcher's fastball or a rolling bowling ball. The difference is that all of this energy can be released in a fraction of a second.
+    </p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ====== INTERACTIVE WINDING SIM ====== -->
+<section>
+  <div class="fade-up">
+    <div class="section-label">04 — Interactive</div>
+    <h2 class="section-title">Winding Simulation</h2>
+    <p class="section-body">Drag the slider to wind the spring and watch the forces build. Notice how stress accelerates non-linearly as you approach maximum wind.</p>
+  </div>
+
+  <div class="sim-container fade-up">
+    <div class="sim-header">
+      <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--text-bright); letter-spacing: 0.03em;">Spring Winding Simulator</h3>
+      <div class="sim-controls">
+        <label>Turns: <strong id="turnDisplay" style="color: var(--accent);">0</strong> / 33</label>
+        <input type="range" class="sim-slider" id="windSlider" min="0" max="33" value="0" step="1">
+      </div>
+    </div>
+
+    <div class="sim-spring-visual">
+      <svg class="sim-spring-svg" id="simSpringSvg" viewBox="0 0 500 80" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="36" width="480" height="8" rx="4" fill="#333"/>
+        <rect x="10" y="30" width="18" height="20" rx="3" fill="#555"/>
+        <rect x="472" y="30" width="18" height="20" rx="3" fill="#555"/>
+        <path id="simCoilPath" fill="none" stroke="#aaa" stroke-width="3" stroke-linecap="round"/>
+        <circle id="simGlow" cx="250" cy="40" r="30" fill="none" stroke="rgba(0,232,123,0)" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="sim-readout">
+      <div class="readout-item">
+        <div class="readout-value" id="readTorque">0</div>
+        <div class="readout-label">Torque (ft-lbs)</div>
+      </div>
+      <div class="readout-item">
+        <div class="readout-value" id="readEnergy">0</div>
+        <div class="readout-label">Stored Energy (J)</div>
+      </div>
+      <div class="readout-item">
+        <div class="readout-value" id="readPSI">0</div>
+        <div class="readout-label">Wire Stress (ksi)</div>
+      </div>
+      <div class="readout-item">
+        <div class="readout-value" id="readDanger" style="color: var(--energy);">LOW</div>
+        <div class="readout-label">Danger Level</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ====== DANGER ZONE ====== -->
+<section>
+  <div class="fade-up">
+    <div class="section-label" style="color: var(--danger);">05 — Danger Zone</div>
+    <h2 class="section-title">How Springs Kill and Maim</h2>
+    <p class="section-body">Garage door spring injuries send thousands of people to the emergency room every year. Here's exactly what happens when things go wrong.</p>
+  </div>
+
+  <div class="danger-zone fade-up">
+    <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--danger); margin-bottom: 0.5rem;">Failure Scenarios</h3>
+    <p style="color: var(--text-dim); font-size: 0.9rem; font-weight: 300;">Every one of these has caused real injuries — many of them life-altering.</p>
+
+    <div class="danger-grid">
+      <div class="danger-card">
+        <div class="icon">💥</div>
+        <h4>Spring Snap</h4>
+        <p>When a spring breaks, the stored energy releases instantly. Broken wire ends whip outward at 100+ mph — fast enough to embed in drywall, shatter car windshields, or crack skulls. The bang is as loud as a gunshot.</p>
+      </div>
+      <div class="danger-card">
+        <div class="icon">🔧</div>
+        <h4>Winding Bar Slip</h4>
+        <p>Professionals use steel winding bars inserted into the spring cone. If a bar slips during winding, it becomes a high-speed projectile powered by 30+ turns of stored energy — commonly causing shattered wrists and forearms.</p>
+      </div>
+      <div class="danger-card">
+        <div class="icon">⬇️</div>
+        <h4>Uncontrolled Door Drop</h4>
+        <p>A broken spring means nothing is counterbalancing the door's weight. A 300+ lb door in free fall generates enough force to crush bone, pin a person to the ground, or total a car underneath it.</p>
+      </div>
+      <div class="danger-card">
+        <div class="icon">🌀</div>
+        <h4>Shaft Spin</h4>
+        <p>The shaft spins at ~300 RPM the instant a spring breaks. Anything in contact — fingers, clothing, hair — gets caught and wound in before you can react. Degloving injuries and amputations are documented outcomes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ====== CTA ====== -->
+<div class="footer-cta fade-up">
+  <div class="cta-title">Always Hire a Professional</div>
+  <p>Garage door spring replacement is one of the few home repairs where DIY is genuinely not worth the risk. The tools are specialized, the forces are extreme, and the margin for error is zero.</p>
+  <div class="cta-price">
+    <span class="amount">$150–$300</span>
+    <span class="label">avg. professional replacement</span>
+  </div>
+  <p class="vs-text">vs. $5,000–$50,000+ in medical bills from a spring injury</p>
+</div>
+
+<script>
+  // === Scroll reveal ===
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+
+        // Animate energy bars inside this element
+        e.target.querySelectorAll('.energy-bar-fill').forEach(bar => {
+          const w = bar.getAttribute('data-width');
+          setTimeout(() => { bar.style.width = w + '%'; }, 200);
+        });
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  // === Winding Simulator ===
+  const slider = document.getElementById('windSlider');
+  const turnDisplay = document.getElementById('turnDisplay');
+  const readTorque = document.getElementById('readTorque');
+  const readEnergy = document.getElementById('readEnergy');
+  const readPSI = document.getElementById('readPSI');
+  const readDanger = document.getElementById('readDanger');
+  const simCoilPath = document.getElementById('simCoilPath');
+  const simGlow = document.getElementById('simGlow');
+
+  function updateSim() {
+    const turns = parseInt(slider.value);
+    const t = turns / 33;
+
+    turnDisplay.textContent = turns;
+
+    // Non-linear force buildup
+    const torque = Math.round(turns * 800 * (1 + t * 0.4));
+    const energy = Math.round(t * t * 300);
+    const psi = Math.round(t * 210);
+
+    readTorque.textContent = torque.toLocaleString();
+    readEnergy.textContent = energy;
+    readPSI.textContent = psi;
+
+    // Danger level
+    let danger, dangerColor;
+    if (t < 0.25) { danger = 'LOW'; dangerColor = 'var(--energy)'; }
+    else if (t < 0.5) { danger = 'MODERATE'; dangerColor = 'var(--accent)'; }
+    else if (t < 0.75) { danger = 'HIGH'; dangerColor = '#ff8800'; }
+    else if (t < 0.95) { danger = 'EXTREME'; dangerColor = 'var(--danger)'; }
+    else { danger = '☠ CRITICAL'; dangerColor = '#ff0040'; }
+    readDanger.textContent = danger;
+    readDanger.style.color = dangerColor;
+    readTorque.style.color = dangerColor;
+    readEnergy.style.color = dangerColor;
+    readPSI.style.color = dangerColor;
+
+    // Update spring coil visualization — tighter coils as turns increase
+    const coilCount = 15;
+    const amplitude = 18 - t * 10;
+    const startX = 50;
+    const endX = 450;
+    const span = endX - startX;
+    const compression = 1 - t * 0.35;
+    const actualSpan = span * compression;
+    const offsetX = startX + (span - actualSpan) / 2;
+
+    let d = `M${offsetX},40`;
+    for (let i = 0; i < coilCount; i++) {
+      const x1 = offsetX + (i + 0.33) / coilCount * actualSpan;
+      const x2 = offsetX + (i + 0.66) / coilCount * actualSpan;
+      const x3 = offsetX + (i + 1) / coilCount * actualSpan;
+      const y1 = 40 - amplitude;
+      const y2 = 40 + amplitude;
+      d += ` C${x1},${y1} ${x2},${y1} ${(x1 + x2) / 2 + 5},40`;
+      d += ` C${x2},${y2} ${x3},${y2} ${x3},40`;
+    }
+    simCoilPath.setAttribute('d', d);
+
+    // Coil color
+    const r = Math.round(170 + t * 85);
+    const g = Math.round(170 - t * 170);
+    const b = Math.round(170 - t * 170);
+    simCoilPath.setAttribute('stroke', `rgb(${r},${g},${b})`);
+    simCoilPath.setAttribute('stroke-width', 3 + t * 2);
+
+    // Glow
+    const glowOpacity = t * 0.5;
+    const glowR = 30 + t * 20;
+    simGlow.setAttribute('r', glowR);
+    simGlow.setAttribute('stroke', `rgba(${r},${g},${b},${glowOpacity})`);
+    simGlow.setAttribute('stroke-width', t * 8);
+  }
+
+  slider.addEventListener('input', updateSim);
+  updateSim();
+</script>
+
+</body>
+</html>

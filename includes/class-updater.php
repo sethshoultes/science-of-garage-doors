@@ -1,6 +1,6 @@
 <?php
 /**
- * SOGD_Updater — GitHub-based plugin update checker.
+ * APLUS_GDS_Updater — GitHub-based plugin update checker.
  *
  * Hooks into WordPress update system to check for new versions from
  * GitHub Releases instead of WordPress.org.
@@ -10,10 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SOGD_Updater {
+class APLUS_GDS_Updater {
 
-	const CACHE_KEY = 'sogd_update_data';
-	const CACHE_TTL = 43200; // 12 hours.
+	const CACHE_KEY   = 'aplus_gds_update_data';
+	const CACHE_TTL   = 43200; // 12 hours.
 	const GITHUB_REPO = 'sethshoultes/science-of-garage-doors';
 
 	/**
@@ -30,10 +30,10 @@ class SOGD_Updater {
 	 * Handle manual "Check for updates" click.
 	 */
 	public static function handle_manual_check() {
-		if ( ! isset( $_GET['sogd_check_update'] ) ) {
+		if ( ! isset( $_GET['aplus_gds_check_update'] ) ) {
 			return;
 		}
-		if ( ! wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ?? '' ), 'sogd_check_update' ) ) {
+		if ( ! wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ?? '' ), 'aplus_gds_check_update' ) ) {
 			return;
 		}
 
@@ -44,7 +44,7 @@ class SOGD_Updater {
 		add_action(
 			'admin_notices',
 			function () {
-				echo '<div class="notice notice-info is-dismissible"><p>Science of Garage Doors: Update check complete.</p></div>';
+				echo '<div class="notice notice-info is-dismissible"><p>A Plus Garage Door Science: Update check complete.</p></div>';
 			}
 		);
 	}
@@ -65,11 +65,11 @@ class SOGD_Updater {
 			return $transient;
 		}
 
-		if ( version_compare( $remote['version'], SOGD_VERSION, '>' ) ) {
-			$transient->response[ SOGD_PLUGIN_BASENAME ] = (object) array(
-				'id'           => 'science-of-garage-doors/science-of-garage-doors.php',
-				'slug'         => 'science-of-garage-doors',
-				'plugin'       => SOGD_PLUGIN_BASENAME,
+		if ( version_compare( $remote['version'], APLUS_GDS_VERSION, '>' ) ) {
+			$transient->response[ APLUS_GDS_PLUGIN_BASENAME ] = (object) array(
+				'id'           => 'aplus-garage-door-science/aplus-garage-door-science.php',
+				'slug'         => 'aplus-garage-door-science',
+				'plugin'       => APLUS_GDS_PLUGIN_BASENAME,
 				'new_version'  => $remote['version'],
 				'url'          => 'https://github.com/' . self::GITHUB_REPO,
 				'package'      => $remote['download_url'],
@@ -91,7 +91,7 @@ class SOGD_Updater {
 	 * @return false|object Plugin info or false to use default.
 	 */
 	public static function plugin_info( $result, $action, $args ) {
-		if ( 'plugin_information' !== $action || 'science-of-garage-doors' !== ( $args->slug ?? '' ) ) {
+		if ( 'plugin_information' !== $action || 'aplus-garage-door-science' !== ( $args->slug ?? '' ) ) {
 			return $result;
 		}
 
@@ -101,8 +101,8 @@ class SOGD_Updater {
 		}
 
 		return (object) array(
-			'name'          => 'Science of Garage Doors',
-			'slug'          => 'science-of-garage-doors',
+			'name'          => 'A Plus Garage Door Science',
+			'slug'          => 'aplus-garage-door-science',
 			'version'       => $remote['version'],
 			'author'        => '<a href="https://aplusgaragedoor.com">A Plus Garage Doors</a>',
 			'homepage'      => 'https://github.com/' . self::GITHUB_REPO,
@@ -113,7 +113,7 @@ class SOGD_Updater {
 			'trunk'         => $remote['download_url'],
 			'last_updated'  => gmdate( 'Y-m-d' ),
 			'sections'      => array(
-				'description' => 'Interactive 3D garage door science explorer. Embeds a full educational presentation as a Gutenberg block or shortcode.',
+				'description' => 'Six interactive educational presentations about garage door science — physics, springs, rolling steel, ROI, energy efficiency, and spring fatigue.',
 				'changelog'   => $remote['changelog'] ?? '',
 			),
 		);
@@ -127,16 +127,16 @@ class SOGD_Updater {
 	 * @return array Modified meta links.
 	 */
 	public static function plugin_row_meta( $meta, $file ) {
-		if ( SOGD_PLUGIN_BASENAME !== $file ) {
+		if ( APLUS_GDS_PLUGIN_BASENAME !== $file ) {
 			return $meta;
 		}
 
 		$check_url = wp_nonce_url(
-			admin_url( 'plugins.php?sogd_check_update=1' ),
-			'sogd_check_update'
+			admin_url( 'plugins.php?aplus_gds_check_update=1' ),
+			'aplus_gds_check_update'
 		);
 
-		$meta[] = '<a href="' . esc_url( $check_url ) . '">' . esc_html__( 'Check for updates', 'science-of-garage-doors' ) . '</a>';
+		$meta[] = '<a href="' . esc_url( $check_url ) . '">' . esc_html__( 'Check for updates', 'aplus-gds' ) . '</a>';
 
 		return $meta;
 	}
@@ -148,7 +148,7 @@ class SOGD_Updater {
 	 * @return array|false Release data array or false on failure.
 	 */
 	public static function get_remote_data( $force_refresh = false ) {
-		if ( isset( $_GET['sogd_check_update'] ) && wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ?? '' ), 'sogd_check_update' ) ) {
+		if ( isset( $_GET['aplus_gds_check_update'] ) && wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ?? '' ), 'aplus_gds_check_update' ) ) {
 			$force_refresh = true;
 		}
 

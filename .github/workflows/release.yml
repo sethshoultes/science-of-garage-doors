@@ -20,17 +20,17 @@ jobs:
         env:
           TAG_NAME: ${{ github.ref_name }}
         run: |
-          SLUG="science-of-garage-doors"
+          SLUG="aplus-garage-door-science"
           VERSION="${TAG_NAME#v}"
           ZIP_NAME="${SLUG}-${VERSION}.zip"
 
-          mkdir -p "dist/${SLUG}/includes"
+          mkdir -p "dist/${SLUG}/includes" "dist/${SLUG}/blocks" "dist/${SLUG}/viewers"
 
-          cp science-of-garage-doors.php "dist/${SLUG}/"
-          cp block.js "dist/${SLUG}/"
-          cp viewer.html "dist/${SLUG}/"
+          cp aplus-garage-door-science.php "dist/${SLUG}/"
           cp readme.txt "dist/${SLUG}/"
           cp includes/class-updater.php "dist/${SLUG}/includes/"
+          cp blocks/block.js "dist/${SLUG}/blocks/"
+          cp viewers/*.html "dist/${SLUG}/viewers/"
 
           cd dist
           zip -rq "${ZIP_NAME}" "${SLUG}/"
@@ -38,9 +38,7 @@ jobs:
           ls -lh "${ZIP_NAME}"
 
       - name: Create GitHub Release
-        env:
-          TAG_NAME: ${{ github.ref_name }}
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/science-of-garage-doors-*.zip
+          files: dist/aplus-garage-door-science-*.zip
           generate_release_notes: true
