@@ -2,7 +2,7 @@
 /**
  * Plugin Name: A Plus Garage Door Science
  * Description: Interactive educational presentations about garage door science. Adds six Gutenberg blocks and shortcodes for embedding garage door physics, springs, rolling steel, ROI, energy efficiency, and spring fatigue presentations.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Author:      A Plus Garage Doors
  * Author URI:  https://aplusgaragedoor.com
  * Plugin URI:  https://github.com/sethshoultes/science-of-garage-doors
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'APLUS_GDS_VERSION', '1.0.0' );
+define( 'APLUS_GDS_VERSION', '1.0.1' );
 define( 'APLUS_GDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'APLUS_GDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'APLUS_GDS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
