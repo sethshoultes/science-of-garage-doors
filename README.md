@@ -28,6 +28,27 @@ Exploded view of a PSC (Permanent Split Capacitor) AC motor with stator coils, s
 ### 6. LED Radio Interference
 Interactive demonstration of how LED bulb wattage affects garage door remote range. Select different bulb wattages (5W–15W) to see signal strength drop from 50ft to 3ft, with frequency spectrum diagram showing 315 MHz signal overlap.
 
+## WordPress Plugin
+
+This repo is also a WordPress plugin. Install it to embed the full interactive presentation on any WordPress page or post.
+
+### Install
+
+1. Go to the [Latest Release](https://github.com/sethshoultes/science-of-garage-doors/releases/latest)
+2. Download the `.zip` file
+3. In WordPress: Plugins → Add New → Upload Plugin → upload the zip
+4. Activate the plugin
+
+### Usage
+
+**Gutenberg Block:** Search for "Science of Garage Doors" in the block inserter.
+
+**Shortcode:** `[garage_door_science]` or `[garage_door_science height="600px"]`
+
+### Auto-Updates
+
+The plugin checks GitHub for new releases automatically. When a new version is available, you'll see the update in your WordPress dashboard — one-click install.
+
 ## Tech
 
 Single `index.html` file — no build step, no server required. Uses [Three.js r128](https://threejs.org/) via CDN for 3D rendering.

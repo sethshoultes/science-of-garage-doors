@@ -1,0 +1,46 @@
+name: Build Plugin Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build plugin zip
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          SLUG="science-of-garage-doors"
+          VERSION="${TAG_NAME#v}"
+          ZIP_NAME="${SLUG}-${VERSION}.zip"
+
+          mkdir -p "dist/${SLUG}/includes"
+
+          cp science-of-garage-doors.php "dist/${SLUG}/"
+          cp block.js "dist/${SLUG}/"
+          cp viewer.html "dist/${SLUG}/"
+          cp readme.txt "dist/${SLUG}/"
+          cp includes/class-updater.php "dist/${SLUG}/includes/"
+
+          cd dist
+          zip -rq "${ZIP_NAME}" "${SLUG}/"
+          echo "Built ${ZIP_NAME}"
+          ls -lh "${ZIP_NAME}"
+
+      - name: Create GitHub Release
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/science-of-garage-doors-*.zip
+          generate_release_notes: true

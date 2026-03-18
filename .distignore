@@ -1,0 +1,18 @@
+# Development files excluded from plugin zip
+.git
+.github
+.gitignore
+.distignore
+.DS_Store
+build-sections
+css
+js
+docs
+presentation
+scripts
+dist
+wp-plugin
+index.html
+science-of-garage-doors.zip
+CLAUDE.md
+README.md

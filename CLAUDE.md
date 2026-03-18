@@ -4,11 +4,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-"The Science of Garage Doors" is a single-page interactive 3D educational website for A Plus Garage Doors. It explains garage door mechanics, physics, and technology through animated Three.js scenes with real-time data readouts.
+"The Science of Garage Doors" is an interactive 3D educational website + WordPress plugin for A Plus Garage Doors. It explains garage door mechanics, physics, and technology through animated Three.js scenes with real-time data readouts.
 
-## Architecture
+This repo serves dual purposes:
+1. **Standalone presentation** — `index.html` viewable in any browser
+2. **WordPress plugin** — plugin files at repo root, built into a clean zip via GitHub Actions on release
 
-The entire application is a single `index.html` file (~1870 lines) containing all HTML, CSS, and JavaScript inline. There is no build system, no dependencies to install, and no package manager.
+## WordPress Plugin
+
+The plugin embeds the presentation via iframe. Files that ship in the plugin zip:
+
+| File | Purpose |
+|------|---------|
+| `science-of-garage-doors.php` | Main plugin file — registers Gutenberg block + shortcode |
+| `block.js` | Gutenberg block registration (editor UI) |
+| `viewer.html` | Self-contained presentation HTML (copy of `index.html`) |
+| `includes/class-updater.php` | GitHub Releases auto-updater |
+| `readme.txt` | WordPress plugin readme |
+
+**Shortcode:** `[garage_door_science height="800px"]`
+**Block:** `sogd/viewer` in the embed category
+
+### Building a Release
+
+1. Update version in `science-of-garage-doors.php` (both plugin header and `SOGD_VERSION`)
+2. Sync `viewer.html` with latest `index.html` if presentation changed
+3. Tag and push: `git tag v1.1.0 && git push origin v1.1.0`
+4. GitHub Actions builds the zip and attaches it to the release
+5. WordPress sites with the plugin installed will see the update automatically
+
+**Local build:** `./scripts/build-plugin.sh` outputs to `dist/`
+
+### Auto-Updater
+
+`includes/class-updater.php` checks GitHub Releases API every 12 hours. When a new release has a zip asset with a higher version than installed, WordPress shows the update in wp-admin. No API key required.
+
+## Presentation Architecture
+
+The presentation is a single `index.html` file (~2100 lines) containing all HTML, CSS, and JavaScript inline. No build system, no dependencies to install, no package manager.
 
 ### External Dependencies (CDN-loaded)
 - **Three.js r128** — all 3D rendering
@@ -45,11 +78,20 @@ Each scene is a self-contained IIFE that creates its own renderer, scene, camera
 - LED interference demo (bulb wattage vs. signal range)
 - Sticky nav with scroll-based active state
 
-## Development
+## Development Files (not in plugin zip)
+
+| Path | Purpose |
+|------|---------|
+| `index.html` | Source presentation (edit this, then copy to `viewer.html`) |
+| `build-sections/` | Development build fragments |
+| `css/`, `js/` | Modular source breakdown (not referenced by index.html) |
+| `docs/` | Blog post, landing page, planning docs |
+| `presentation/` | Video files + presentation script + slides |
+| `wp-plugin/` | Legacy per-project plugin (superseded by root-level plugin) |
+| `scripts/build-plugin.sh` | Local build script |
+| `.github/workflows/release.yml` | GitHub Actions release builder |
 
 **To preview**: Open `index.html` directly in a browser, or use any static file server (e.g., `python3 -m http.server`).
-
-**No build step required.** All changes are made directly in `index.html`.
 
 ### Design System
 - Dark theme with CSS custom properties (`--bg`, `--accent`, `--text`, etc.)
