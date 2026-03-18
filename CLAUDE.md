@@ -84,11 +84,8 @@ Each scene is a self-contained IIFE that creates its own renderer, scene, camera
 | Path | Purpose |
 |------|---------|
 | `index.html` | Source presentation (edit this, then copy to `viewers/science-of-garage-doors.html`) |
-| `build-sections/` | Development build fragments |
-| `css/`, `js/` | Modular source breakdown (not referenced by index.html) |
-| `docs/` | Blog post, landing page, planning docs |
-| `presentation/` | Video files + presentation script + slides |
-| `wp-plugin/` | Legacy per-project plugin (superseded by root-level plugin) |
+| `content/` | Blog post, landing page, project plan |
+| `presentation/` | Video files + presentation script + slides (untracked, not in git) |
 | `scripts/build-plugin.sh` | Local build script |
 | `.github/workflows/release.yml` | GitHub Actions release builder |
 
