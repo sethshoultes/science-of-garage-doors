@@ -10,25 +10,26 @@ This repo serves dual purposes:
 1. **Standalone presentation** — `index.html` viewable in any browser
 2. **WordPress plugin** — plugin files at repo root, built into a clean zip via GitHub Actions on release
 
-## WordPress Plugin
+## WordPress Plugin (A Plus Garage Door Science)
 
-The plugin embeds the presentation via iframe. Files that ship in the plugin zip:
+The unified plugin bundles 6 presentations as Gutenberg blocks with shortcode fallbacks. Each presentation is embedded via iframe.
 
 | File | Purpose |
 |------|---------|
-| `science-of-garage-doors.php` | Main plugin file — registers Gutenberg block + shortcode |
-| `block.js` | Gutenberg block registration (editor UI) |
-| `viewer.html` | Self-contained presentation HTML (copy of `index.html`) |
+| `aplus-garage-door-science.php` | Main plugin file — registers 6 blocks + 6 shortcodes |
+| `blocks/block.js` | Single JS file registering all 6 Gutenberg blocks under `aplus/` namespace |
+| `viewers/*.html` | Self-contained presentation HTML files (one per presentation) |
 | `includes/class-updater.php` | GitHub Releases auto-updater |
 | `readme.txt` | WordPress plugin readme |
 
-**Shortcode:** `[garage_door_science height="800px"]`
-**Block:** `sogd/viewer` in the embed category
+**Blocks:** `aplus/garage-door-science`, `aplus/spring-science`, `aplus/rolling-steel-lab`, `aplus/garage-door-roi`, `aplus/energy-efficiency`, `aplus/spring-fatigue`
+
+**Shortcodes:** `[aplus_garage_door_science]`, `[aplus_spring_science]`, `[aplus_rolling_steel]`, `[aplus_garage_door_roi]`, `[aplus_energy_efficiency]`, `[aplus_spring_fatigue]`
 
 ### Building a Release
 
-1. Update version in `science-of-garage-doors.php` (both plugin header and `SOGD_VERSION`)
-2. Sync `viewer.html` with latest `index.html` if presentation changed
+1. Update version in `aplus-garage-door-science.php` (both plugin header and `APLUS_GDS_VERSION`)
+2. Sync viewer HTML files with source presentations if changed
 3. Tag and push: `git tag v1.1.0 && git push origin v1.1.0`
 4. GitHub Actions builds the zip and attaches it to the release
 5. WordPress sites with the plugin installed will see the update automatically
@@ -82,7 +83,7 @@ Each scene is a self-contained IIFE that creates its own renderer, scene, camera
 
 | Path | Purpose |
 |------|---------|
-| `index.html` | Source presentation (edit this, then copy to `viewer.html`) |
+| `index.html` | Source presentation (edit this, then copy to `viewers/science-of-garage-doors.html`) |
 | `build-sections/` | Development build fragments |
 | `css/`, `js/` | Modular source breakdown (not referenced by index.html) |
 | `docs/` | Blog post, landing page, planning docs |
